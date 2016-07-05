@@ -299,11 +299,11 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     print(('The no corruption code for file ' +
            os.path.split(__file__)[1] +
            ' ran for %.2fm' % ((training_time) / 60.)), file=sys.stderr)
-    image = Image.fromarray(
-        tile_raster_images(X=da.W.get_value(borrow=True).T,
-                           img_shape=(Width, Height), tile_shape=(10, 10),
-                           tile_spacing=(1, 1)))
-    image.save('filters_corruption_0.png')
+#    image = Image.fromarray(
+#        tile_raster_images(X=da.W.get_value(borrow=True).T,
+#                           img_shape=(Width, Height), tile_shape=(10, 10),
+#                           tile_spacing=(1, 1)))
+#    image.save('filters_corruption_0.png')
     W_corruption_0 = da.W
     bhid_corruption_0 = da.b
     bvis_corruption_0 = da.b_prime
@@ -362,11 +362,11 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     # end-snippet-3
 #
 #    # start-snippet-4
-    image = Image.fromarray(tile_raster_images(
-        X=da.W.get_value(borrow=True).T,
-        img_shape=(Width, Height), tile_shape=(10, 10),
-        tile_spacing=(1, 1)))
-    image.save('filters_corruption_30.png')
+#    image = Image.fromarray(tile_raster_images(
+#        X=da.W.get_value(borrow=True).T,
+#        img_shape=(Width, Height), tile_shape=(10, 10),
+#        tile_spacing=(1, 1)))
+#    image.save('filters_corruption_30.png')
 #    # end-snippet-4
 #
 #    os.chdir('../')
@@ -408,14 +408,19 @@ if __name__ == '__main__':
 
     # compute number of minibatches for training, validation and testing
 #    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // 20
-    W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=0.1,
-                                                training_epochs=1000,hidden=1000)
+
+    Width = Height = 32
+    hidden = 1024
+    training_epochs = 20
+    learning_rate = 0.1
+    batch_size =20
+    W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=learning_rate,
+                                                training_epochs=training_epochs,hidden=hidden,
+                                                Width = Width, Height = Height,
+                                                batch_size = batch_size)
     
     train_set_x = theano.shared(imgs)
-    Width =32
-    Height=32
-    hidden=800
-    batch_size =20
+    
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
 
     x = T.matrix('x', dtype='float32') 
@@ -443,20 +448,22 @@ if __name__ == '__main__':
         bvis=b_p30
     )
     
-    X = imgs[0]
+    X = imgs[50]
     tilde_x0 = da0.get_corrupted_input(X, 0)
     y0 = da0.get_hidden_values(tilde_x0)
     z0 = da0.get_reconstructed_input(y0)
     y0 = y0.eval()
     z0 = z0.eval()
     tilde_x0 = tilde_x0.eval()
-    showGrayImage(tilde_x0, Width, Height)
-    showGrayImage(z0, Width, Height)
+    
     tilde_x30 = da30.get_corrupted_input(X, 0.3)
     y30 = da30.get_hidden_values(tilde_x30)
     z30 = da30.get_reconstructed_input(y30)
     y30 = y30.eval()
     z30 = z30.eval()
     tilde_x30 = tilde_x30.eval()
+    
+    showGrayImage(tilde_x0, Width, Height)
+    showGrayImage(z0, Width, Height)
     showGrayImage(tilde_x30, Width, Height)
     showGrayImage(z30, Width, Height)
