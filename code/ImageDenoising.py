@@ -399,7 +399,7 @@ def showGrayImage(data, W, H):
 
 if __name__ == '__main__':
     #
-    dataset='C:/Users/aluo/Downloads/cifar-10-batches-py/test_batch'
+    dataset='dataset/test_batch'
     datasets = unpickle(dataset)
     imgs = numpy.array(datasets['data'], dtype='float32')
     imgs = imgs[:, 0:1024]/255
