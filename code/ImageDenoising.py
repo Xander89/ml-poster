@@ -201,10 +201,15 @@ class denoiseAutoEncoder(object):
         #        compute the average of all these to get the cost of
         #        the minibatch
         cost = T.mean(L)
-
+#        square_param = numpy.multiply(self.params[0],self.params[0])
+#        regularization = learning_rate* 0.5 * T.mean(T.sum(T.sum(square_param,axis = 0),axis=0))
+        cost = cost #+ regularization
         # compute the gradients of the cost of the `dA` with respect
         # to its parameters
         gparams = T.grad(cost, self.params)
+ 
+        print(gparams)
+        #gparams[0] = gparams[0] + learning_rate * self.params[0] / self.params[0].size
         # generate the list of updates
         updates = [
             (param, param - learning_rate * gparam)
@@ -417,18 +422,19 @@ if __name__ == '__main__':
     dataset='dataset/test_batch'
     datasets = unpickle(dataset)
     imgs = numpy.array(datasets['data'], dtype='float32')
-    imgs = imgs[:, 0:1024]/255
+
 #    train_set_x = theano.shared(imgs)
 #    print (train_set_x)
 
     # compute number of minibatches for training, validation and testing
 #    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // 20
 
-    Width = Height = 32
-    hidden = 500
-    training_epochs = 20
-    learning_rate = 0.1
+    Width = Height = 8
+    hidden = Width * Height * 2 // 3
+    training_epochs = 50
+    learning_rate =10.1
     batch_size =20
+    imgs = imgs[:, 0:Width*Height]/255
     W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=learning_rate,
                                                 training_epochs=training_epochs,hidden=hidden,
                                                 Width = Width, Height = Height,
