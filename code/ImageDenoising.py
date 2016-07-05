@@ -396,6 +396,21 @@ def showGrayImage(data, W, H):
     data = data.reshape(W,H)
     pyplot.axis('off')
     pyplot.imshow(data,cmap='Greys_r')
+    
+
+def autoEncodeImage(data, autoEncoder, noise,W, H):
+    X = data
+    tilde_X = autoEncoder.get_corrupted_input(X, noise)
+    Y = autoEncoder.get_hidden_values(tilde_X)
+    Z = autoEncoder.get_reconstructed_input(Y)
+    Y = Y.eval()
+    Z = Z.eval()
+    tilde_X = tilde_X.eval()
+    showGrayImage(tilde_X, W, H)
+    pyplot.figure()
+    showGrayImage(Z, W, H)
+    pyplot.figure()
+    pyplot.show()
 
 if __name__ == '__main__':
     #
@@ -410,7 +425,7 @@ if __name__ == '__main__':
 #    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // 20
 
     Width = Height = 32
-    hidden = 1024
+    hidden = 500
     training_epochs = 20
     learning_rate = 0.1
     batch_size =20
@@ -449,21 +464,5 @@ if __name__ == '__main__':
     )
     
     X = imgs[50]
-    tilde_x0 = da0.get_corrupted_input(X, 0)
-    y0 = da0.get_hidden_values(tilde_x0)
-    z0 = da0.get_reconstructed_input(y0)
-    y0 = y0.eval()
-    z0 = z0.eval()
-    tilde_x0 = tilde_x0.eval()
-    
-    tilde_x30 = da30.get_corrupted_input(X, 0.3)
-    y30 = da30.get_hidden_values(tilde_x30)
-    z30 = da30.get_reconstructed_input(y30)
-    y30 = y30.eval()
-    z30 = z30.eval()
-    tilde_x30 = tilde_x30.eval()
-    
-    showGrayImage(tilde_x0, Width, Height)
-    showGrayImage(z0, Width, Height)
-    showGrayImage(tilde_x30, Width, Height)
-    showGrayImage(z30, Width, Height)
+    autoEncodeImage(data=X, autoEncoder=da0, noise=0,W=Width, H=Height)
+    autoEncodeImage(data=X, autoEncoder=da30, noise=0.3,W=Width, H=Height)
