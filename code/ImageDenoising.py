@@ -10,7 +10,7 @@ from __future__ import print_function
 import os
 import sys
 import timeit
-
+import pickle
 import numpy
 from matplotlib import pyplot
 import theano
@@ -384,11 +384,11 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
 
 
 def unpickle(file):
-    import cPickle
+    
     fo = open(file, 'rb')
-    dict = cPickle.load(fo)
+    d = pickle.load(fo)
     fo.close()
-    return dict
+    return d
     
 def showRGBImage(array_data, W, H):
     array_data = array_data.reshape(3,W, H).transpose()
@@ -420,7 +420,8 @@ def autoEncodeImage(data, autoEncoder, noise,W, H):
 if __name__ == '__main__':
     #
     dataset='dataset/test_batch'
-    datasets = unpickle(dataset)
+    datasetX = 'output/unconverged.dat'
+    datasets = unpickle(datasetX)
     imgs = numpy.array(datasets['data'], dtype='float32')
 
 #    train_set_x = theano.shared(imgs)
@@ -431,8 +432,8 @@ if __name__ == '__main__':
 
     Width = Height = 8
     hidden = Width * Height * 2 // 3
-    training_epochs = 50
-    learning_rate =10.1
+    training_epochs = 1
+    learning_rate =0.1
     batch_size =20
     imgs = imgs[:, 0:Width*Height]/255
     W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=learning_rate,
