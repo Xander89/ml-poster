@@ -100,6 +100,6 @@ for t in tuples:
                 patch = np.reshape(patch, patch.size)
                 patches[j * n_patches[1] + k] = patch
         d[name] = {"data" : patches}
-    ff = open(path + "/" + t[2] + ".dat", "w+")
+    ff = open(path + "/" + t[2] + ".dat", "wb")
     pickle.dump(d, ff)
     ff.close()
