@@ -34,6 +34,7 @@ class denoiseAutoEncoder(object):
         numpy_rng,
         theano_rng=None,
         input=None,
+        noiseInput=None,
         n_visible=32*32,
         n_hidden=800,
         W=None,
@@ -144,7 +145,13 @@ class denoiseAutoEncoder(object):
             self.x = T.dmatrix(name='input')
         else:
             self.x = input
-
+        if noiseInput is None:
+            # we use a matrix because we expect a minibatch of several
+            # examples, each example being a row
+            self.noise_x = T.dmatrix(name='noiseInput')
+        else:
+            self.noise_x = noiseInput
+            
         self.params = [self.W, self.b, self.b_prime]
 
     def get_corrupted_input(self, input, corruption_level):
@@ -188,7 +195,9 @@ class denoiseAutoEncoder(object):
         """ This function computes the cost and the updates for one trainng
         step of the dA """
 
-        tilde_x = self.get_corrupted_input(self.x, corruption_level)
+#        tilde_x = self.get_corrupted_input(self.x, corruption_level)
+        
+        tilde_x=self.noise_x
         y = self.get_hidden_values(tilde_x)
         z = self.get_reconstructed_input(y)
         # note : we sum over the size of a datapoint; if we are using
@@ -219,7 +228,7 @@ class denoiseAutoEncoder(object):
         return (cost, updates)
 
 def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_epochs=15,
-            dataset = None,
+            dataset = None, noise_dataset=None,
             batch_size=20, output_folder='dA_plots'):
 
     """
@@ -238,6 +247,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     """
 
     train_set_x = theano.shared(dataset)
+    
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
    
@@ -245,6 +255,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     # allocate symbolic variables for the data
     index = T.lscalar()    # index to a [mini]batch
     x = T.matrix('x', dtype='float32')  # the data is presented as rasterized images
+    noise_x = T.matrix('noise_x', dtype='float32')
     # end-snippet-2
 
     if not os.path.isdir(output_folder):
@@ -258,10 +269,12 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
 
+    noise_train_set_x = theano.shared(dataset)
     da = denoiseAutoEncoder(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=x,
+        noiseInput=noise_x,
         n_visible=Width * Height,
         n_hidden=hidden
     )
@@ -278,7 +291,8 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         cost,
         updates=updates,
         givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size]
+            x: train_set_x[index * batch_size: (index + 1) * batch_size],
+            noise_x: noise_train_set_x[index * batch_size: (index + 1) * batch_size] 
         }
     )
 
@@ -319,11 +333,12 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
 
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
-
+    noise_train_set_x = theano.shared(noise_dataset)
     da = denoiseAutoEncoder(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=x,
+        noiseInput=noise_x,
         n_visible=Width * Height,
         n_hidden=hidden
     )
@@ -338,7 +353,8 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         cost,
         updates=updates,
         givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size]
+            x: train_set_x[index * batch_size: (index + 1) * batch_size],
+            noise_x: noise_train_set_x[index * batch_size: (index + 1) * batch_size] 
         }
     )
 
@@ -403,14 +419,14 @@ def showGrayImage(data, W, H):
     pyplot.imshow(data,cmap='Greys_r')
     
 
-def autoEncodeImage(data, autoEncoder, noise,W, H):
+def autoEncodeImage(data, autoEncoder, W, H):
     X = data
-    tilde_X = autoEncoder.get_corrupted_input(X, noise)
+    tilde_X = X
     Y = autoEncoder.get_hidden_values(tilde_X)
     Z = autoEncoder.get_reconstructed_input(Y)
     Y = Y.eval()
     Z = Z.eval()
-    tilde_X = tilde_X.eval()
+#    tilde_X = tilde_X.eval()
     showGrayImage(tilde_X, W, H)
     pyplot.figure()
     showGrayImage(Z, W, H)
@@ -419,57 +435,68 @@ def autoEncodeImage(data, autoEncoder, noise,W, H):
 
 if __name__ == '__main__':
     #
-    dataset='dataset/test_batch'
-    datasetX = 'output/unconverged.dat'
-    datasets = unpickle(datasetX)
-    imgs = numpy.array(datasets['data'], dtype='float32')
+#    dataset='dataset/test_batch'
+#    datasets = unpickle(dataset)
+#    data = datasets['data']
+    dataset = 'output/converged.dat'
+    datasets = unpickle(dataset)
+    data = datasets['r']['data'] + datasets['g']['data'] +  datasets['b']['data']
+    imgs = numpy.array(data, dtype='float32')
 
+    noise_dataset = 'output/unconverged.dat'
+    noise_datasets = unpickle(noise_dataset)
+    noise_data = noise_datasets['r']['data'] + noise_datasets['g']['data'] +  noise_datasets['b']['data']
+    noise_imgs = numpy.array(noise_data, dtype='float32')
 #    train_set_x = theano.shared(imgs)
 #    print (train_set_x)
 
     # compute number of minibatches for training, validation and testing
 #    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // 20
 
-    Width = Height = 8
+    Width = Height = 32
     hidden = Width * Height * 2 // 3
-    training_epochs = 1
-    learning_rate =0.1
+    training_epochs = 500
+    learning_rate =0.01
     batch_size =20
-    imgs = imgs[:, 0:Width*Height]/255
+#    imgs = imgs[:, 0:Width*Height]/255
     W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=learning_rate,
                                                 training_epochs=training_epochs,hidden=hidden,
                                                 Width = Width, Height = Height,
-                                                batch_size = batch_size)
+                                                batch_size = batch_size,
+                                                noise_dataset=noise_imgs)
     
     train_set_x = theano.shared(imgs)
-    
+    noise_train_set_x = theano.shared(noise_imgs)
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
 
     x = T.matrix('x', dtype='float32') 
-
+    noise_x = T.matrix('noise_x', dtype='float32') 
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
-    da0 = denoiseAutoEncoder(
+    cleanDA = denoiseAutoEncoder(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=imgs,
+        noiseInput=imgs,
         n_visible=Width * Height,
         n_hidden=hidden,
         W=W_0,
         bhid=b_0,
         bvis=b_p0
     )
-    da30 = denoiseAutoEncoder(
+    noiseDA = denoiseAutoEncoder(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=imgs,
+        noiseInput=noise_imgs,
         n_visible=Width * Height,
         n_hidden=hidden,
         W=W_30,
         bhid=b_30,
         bvis=b_p30
     )
-    
-    X = imgs[50]
-    autoEncodeImage(data=X, autoEncoder=da0, noise=0,W=Width, H=Height)
-    autoEncodeImage(data=X, autoEncoder=da30, noise=0.3,W=Width, H=Height)
+    for idx in range(0, 1000, 50):
+        cleanX = imgs[idx]
+        noiseX = noise_imgs[idx]
+        autoEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
+        autoEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
