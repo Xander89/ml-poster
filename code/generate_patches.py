@@ -45,7 +45,7 @@ def get_script_dir(follow_symlinks=True):
 def get_script_complete_path(follow_symlinks = True):
     return get_script_dir(follow_symlinks) + "\\" + sys.argv[0]
 
-def recombine_image(d):
+def recombine_image(d, output_name = "test.png"):
     patch_size = d["patch_size"]
     pad_size = d["pad_size"]
     image_size = d["image_size"]
@@ -70,7 +70,7 @@ def recombine_image(d):
             data_weights[initial_pixel[0]:final_pixel[0],:, color_i][:,initial_pixel[1]:final_pixel[1]] += patch_weight
     data_weights = np.maximum(data_weights, ones)
     data = data / data_weights
-    scipy.misc.toimage(data, cmin=0.0, cmax=1.0, channel_axis=2).save("test.png")
+    scipy.misc.toimage(data, cmin=0.0, cmax=1.0, channel_axis=2).save(output_name)
     return data
  
  
