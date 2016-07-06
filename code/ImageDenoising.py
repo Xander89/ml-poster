@@ -193,6 +193,11 @@ class denoiseAutoEncoder(object):
         """
         return T.nnet.sigmoid(T.dot(hidden, self.W_prime) + self.b_prime)
 
+    def get_denoised_patch_function(self, patch):
+         y = self.get_hidden_values(patch)
+         z = self.get_reconstructed_input(y)
+         return z
+        
     def get_cost_updates(self, corruption_level, learning_rate):
         """ This function computes the cost and the updates for one trainng
         step of the dA """
@@ -468,14 +473,20 @@ def loadTrainedData(path):
 def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
     d = noise_datasets.copy()
     rgb = ('r', 'g', 'b')
+    x = T.vector('x', dtype='float32')
+    evaluate = theano.function(
+        [x],
+        autoEncoder.get_denoised_patch_function(x)
+    )
+    
     for c in rgb:
-        imgs = d[c]['data']
+        imgs = numpy.array(d[c]['data'], dtype='float32')
         for idx in range(0, imgs.shape[0],1):
             print("denoising: " + c + str(idx) )
             X = imgs[idx]
-            Y = autoEncoder.get_hidden_values(X)
-            Z = autoEncoder.get_reconstructed_input(Y)
-            Z = Z.eval()
+            #Y = autoEncoder.get_hidden_values(X)
+            #Z = autoEncoder.get_reconstructed_input(Y)
+            Z = evaluate(X)
             d[c]['data'][idx] = Z
             
     path = 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.dat'
