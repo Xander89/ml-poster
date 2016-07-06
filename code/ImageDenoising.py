@@ -7,8 +7,10 @@ Created on Fri Jul 01 15:52:10 2016
 
 from __future__ import print_function
 
+
 import os
 import sys
+import errno
 import timeit
 import pickle
 import numpy
@@ -258,9 +260,9 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     noise_x = T.matrix('noise_x', dtype='float32')
     # end-snippet-2
 
-    if not os.path.isdir(output_folder):
-        os.makedirs(output_folder)
-    os.chdir(output_folder)
+#    if not os.path.isdir(output_folder):
+#        os.makedirs(output_folder)
+#    os.chdir(output_folder)
 
     ####################################
     # BUILDING THE MODEL NO CORRUPTION #
@@ -309,15 +311,16 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
 
-        print('Training epoch %d, cost ' % epoch, numpy.mean(c))
+        print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
+        
 
     end_time = timeit.default_timer()
 
     training_time = (end_time - start_time)
 
-    print(('The no corruption code for file ' +
-           os.path.split(__file__)[1] +
-           ' ran for %.2fm' % ((training_time) / 60.)), file=sys.stderr)
+#    print(('The no corruption code for file ' +
+#           os.path.split(__file__)[1] +
+#           ' ran for %.2fm' % ((training_time) / 60.)), file=sys.stderr)
 #    image = Image.fromarray(
 #        tile_raster_images(X=da.W.get_value(borrow=True).T,
 #                           img_shape=(Width, Height), tile_shape=(10, 10),
@@ -371,15 +374,15 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
 
-        print('Training epoch %d, cost ' % epoch, numpy.mean(c))
+        print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
 
     end_time = timeit.default_timer()
 
     training_time = (end_time - start_time)
 
-    print(('The 30% corruption code for file ' +
-           os.path.split(__file__)[1] +
-           ' ran for %.2fm' % (training_time / 60.)), file=sys.stderr)
+#    print(('The 30% corruption code for file ' +
+#           os.path.split(__file__)[1] +
+#           ' ran for %.2fm' % (training_time / 60.)), file=sys.stderr)
     # end-snippet-3
 #
 #    # start-snippet-4
@@ -419,7 +422,7 @@ def showGrayImage(data, W, H):
     pyplot.imshow(data,cmap='Greys_r')
     
 
-def autoEncodeImage(data, autoEncoder, W, H):
+def showEncodeImage(data, autoEncoder, W, H):
     X = data
     tilde_X = X
     Y = autoEncoder.get_hidden_values(tilde_X)
@@ -432,45 +435,99 @@ def autoEncodeImage(data, autoEncoder, W, H):
     showGrayImage(Z, W, H)
     pyplot.figure()
     pyplot.show()
+    
+def saveTrainedData(path,clean_W,clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height ):
+    d = {}
+    d["clean_W"] = {"data" : clean_W}
+    d["clean_b"] = {"data" : clean_b}
+    d["clean_b_p"] = {"data" : clean_b_p}
+    d["noise_W"] = {"data" : noise_W}
+    d["noise_b"] = {"data" : noise_b}
+    d["noise_b_p"] = {"data" : noise_b_p}
+    d["hidden"] = {"data" : hidden}
+    d["Width"] = {"data" : Width}
+    d["Height"] = {"data" : Height}
+    ff = open(path, "wb")
+    pickle.dump(d, ff)
+    ff.close()
+    
+def loadTrainedData(path):
+    d = unpickle(path)
+    clean_W = d["clean_W"]["data"]
+    clean_b = d["clean_b"]["data"]
+    clean_b_p = d["clean_b_p"]["data"]
+    noise_W = d["noise_W"]["data"]
+    noise_b = d["noise_b"]["data"]
+    noise_b_p = d["noise_b_p"]["data"]
+    hidden = d["hidden"]["data"]
+    Width = d["Width"]["data"]
+    Height = d["Height"]["data"]
+    results =(clean_W,clean_b,clean_b_p,noise_W,noise_b,noise_b_p,hidden,Width,Height)
+    return results
+    
+def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
+    d = noise_datasets.copy()
+    rgb = ('r', 'g', 'b')
+    red = d['r']['data']
+    green = d['g']['data']
+    blue = d['b']['data']
+    imgs = (red, green, blue)
+    for c in rgb:
+        imgs = d[c]['data']
+        for idx in range(0, imgs.shape[0],1):
+            print("training: " + c + str(idx) )
+            X = imgs[idx]
+            Y = autoEncoder.get_hidden_values(X)
+            Z = autoEncoder.get_reconstructed_input(Y)
+            Z = Z.eval()
+            
+    path = 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.dat'
+    ff = open(path, "wb")
+    pickle.dump(d, ff)
+    ff.close()
+
+
 
 if __name__ == '__main__':
-    #
-#    dataset='dataset/test_batch'
-#    datasets = unpickle(dataset)
-#    data = datasets['data']
-    dataset = 'output/converged.dat'
+
+    dataset_number = "_2"
+    dataset_name = "converged"+dataset_number
+    dataset = 'output/' + dataset_name + '.dat'
     datasets = unpickle(dataset)
-    data = datasets['r']['data'] + datasets['g']['data'] +  datasets['b']['data']
+    data = numpy.concatenate((datasets['r']['data'], datasets['g']['data'], datasets['b']['data']),axis=0)
     imgs = numpy.array(data, dtype='float32')
 
-    noise_dataset = 'output/unconverged.dat'
+    noise_dataset = 'output/un' + dataset_name +'.dat'
     noise_datasets = unpickle(noise_dataset)
-    noise_data = noise_datasets['r']['data'] + noise_datasets['g']['data'] +  noise_datasets['b']['data']
+    noise_data = numpy.concatenate((noise_datasets['r']['data'],noise_datasets['g']['data'],noise_datasets['b']['data']),axis=0)
     noise_imgs = numpy.array(noise_data, dtype='float32')
-#    train_set_x = theano.shared(imgs)
-#    print (train_set_x)
 
-    # compute number of minibatches for training, validation and testing
-#    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // 20
-
+    
     Width = Height = 32
     hidden = Width * Height * 2 // 3
-    training_epochs = 500
-    learning_rate =0.01
+    training_epochs = 10
+    learning_rate =0.1
     batch_size =20
+    
+    path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
+    isTrained =  os.path.isfile(path)
 #    imgs = imgs[:, 0:Width*Height]/255
-    W_0, b_0, b_p0, W_30, b_30, b_p30 = test_dA(dataset=imgs,learning_rate=learning_rate,
+#    noise_imgs= noise_imgs[:, 0:Width*Height]/255
+    if not isTrained:
+        clean_W, clean_b, clean_b_p, noise_W, noise_b, noise_b_p = test_dA(dataset=imgs,learning_rate=learning_rate,
                                                 training_epochs=training_epochs,hidden=hidden,
                                                 Width = Width, Height = Height,
                                                 batch_size = batch_size,
                                                 noise_dataset=noise_imgs)
+        saveTrainedData(path,clean_W,clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height )
+    else:
+        clean_W, clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height = loadTrainedData(path)
     
     train_set_x = theano.shared(imgs)
     noise_train_set_x = theano.shared(noise_imgs)
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
 
-    x = T.matrix('x', dtype='float32') 
-    noise_x = T.matrix('noise_x', dtype='float32') 
+
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
     cleanDA = denoiseAutoEncoder(
@@ -480,10 +537,12 @@ if __name__ == '__main__':
         noiseInput=imgs,
         n_visible=Width * Height,
         n_hidden=hidden,
-        W=W_0,
-        bhid=b_0,
-        bvis=b_p0
+        W=clean_W,
+        bhid=clean_b,
+        bvis=clean_b_p
     )
+    rng = numpy.random.RandomState(123)
+    theano_rng = RandomStreams(rng.randint(2 ** 30))
     noiseDA = denoiseAutoEncoder(
         numpy_rng=rng,
         theano_rng=theano_rng,
@@ -491,12 +550,18 @@ if __name__ == '__main__':
         noiseInput=noise_imgs,
         n_visible=Width * Height,
         n_hidden=hidden,
-        W=W_30,
-        bhid=b_30,
-        bvis=b_p30
+        W=noise_W,
+        bhid=noise_b,
+        bvis=noise_b_p
     )
-    for idx in range(0, 1000, 50):
-        cleanX = imgs[idx]
-        noiseX = noise_imgs[idx]
-        autoEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
-        autoEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
+    filterImages(noise_datasets,noiseDA,Width,Height, dataset_number, training_epochs)
+#    idx = 500
+#    cleanX = imgs[idx]
+#    noiseX = noise_imgs[idx]
+#    showEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
+#    showEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
+#    for idx in range(0, 1000, 50):
+#        cleanX = imgs[idx]
+#        noiseX = noise_imgs[idx]
+#        showEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
+#        showEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
