@@ -504,9 +504,9 @@ if __name__ == '__main__':
     
     Width = Height = 32
     hidden = Width * Height * 2 // 3
-    training_epochs = 1000
+    training_epochs = 500
     learning_rate =0.01
-    batch_size =20
+    batch_size =500
     
     path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
     isTrained =  os.path.isfile(path)
