@@ -468,24 +468,21 @@ def loadTrainedData(path):
 def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
     d = noise_datasets.copy()
     rgb = ('r', 'g', 'b')
-    red = d['r']['data']
-    green = d['g']['data']
-    blue = d['b']['data']
-    imgs = (red, green, blue)
     for c in rgb:
         imgs = d[c]['data']
         for idx in range(0, imgs.shape[0],1):
-            print("training: " + c + str(idx) )
+            print("denoising: " + c + str(idx) )
             X = imgs[idx]
             Y = autoEncoder.get_hidden_values(X)
             Z = autoEncoder.get_reconstructed_input(Y)
             Z = Z.eval()
+            d[c]['data'][idx] = Z
             
     path = 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.dat'
     ff = open(path, "wb")
     pickle.dump(d, ff)
     ff.close()
-
+    return d
 
 
 if __name__ == '__main__':
@@ -505,8 +502,8 @@ if __name__ == '__main__':
     
     Width = Height = 32
     hidden = Width * Height * 2 // 3
-    training_epochs = 10
-    learning_rate =0.1
+    training_epochs = 1000
+    learning_rate =0.01
     batch_size =20
     
     path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
@@ -554,7 +551,7 @@ if __name__ == '__main__':
         bhid=noise_b,
         bvis=noise_b_p
     )
-    filterImages(noise_datasets,noiseDA,Width,Height, dataset_number, training_epochs)
+    denoised_datasets = filterImages(noise_datasets,noiseDA,Width,Height, dataset_number, training_epochs)
 #    idx = 500
 #    cleanX = imgs[idx]
 #    noiseX = noise_imgs[idx]
