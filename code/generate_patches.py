@@ -149,7 +149,4 @@ def run():
         
 
 if __name__ == '__main__':
-    #run()
-    dataset = 'output/converged.dat'
-    datasets = unpickle(dataset)
-    a = recombine_image(datasets)
+    run()
