@@ -15,6 +15,7 @@ import timeit
 import pickle
 import numpy
 from matplotlib import pyplot
+from generate_patches import recombine_image
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -493,6 +494,7 @@ def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
     ff = open(path, "wb")
     pickle.dump(d, ff)
     ff.close()
+    recombine_image(d, 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.png')
     return d
 
 
