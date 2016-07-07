@@ -218,9 +218,9 @@ class denoiseAutoEncoder(object):
         #        compute the average of all these to get the cost of
         #        the minibatch
         cost = T.mean(L)
+#        cost = L 
 #        square_param = numpy.multiply(self.params[0],self.params[0])
 #        regularization = learning_rate* 0.5 * T.mean(T.sum(T.sum(square_param,axis = 0),axis=0))
-        cost = cost #+ regularization
         # compute the gradients of the cost of the `dA` with respect
         # to its parameters
         gparams = T.grad(cost, self.params)
@@ -291,6 +291,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         corruption_level=0.,
         learning_rate=learning_rate
     )
+
 #    print(index)
 #    print(batch_size)
 #    print(train_set_x)
@@ -382,8 +383,8 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
 
-        if epoch % 1000 == 0:
-            print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
+        if epoch % 100 == 0:
+            print('Training epoch %d, cost ' % epoch, numpy.mean(c))
 
     end_time = timeit.default_timer()
 
@@ -519,9 +520,9 @@ if __name__ == '__main__':
     Width = Height = 32
     hidden = Width * Height * 2 // 3
 
-    training_epochs = 1000000
+    training_epochs = 100000
     learning_rate =0.01
-    batch_size = 1000
+    batch_size = imgs.shape[0]
 
     path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
     isTrained =  os.path.isfile(path)
