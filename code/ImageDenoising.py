@@ -504,14 +504,15 @@ def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
 
 if __name__ == '__main__':
 
-    dataset_number = "_2"
-    dataset_name = "converged"+dataset_number
+    dataset_base = "rendering"
+    dataset_name = dataset_base + "_10000"
     dataset = 'output/' + dataset_name + '.dat'
     datasets = unpickle(dataset)
     data = numpy.concatenate((datasets['r']['data'], datasets['g']['data'], datasets['b']['data']),axis=0)
     imgs = numpy.array(data, dtype='float32')
 
-    noise_dataset = 'output/un' + dataset_name +'.dat'
+    noise_dataset_samples = 5
+    noise_dataset = 'output/' + dataset_base +'_'+ str(noise_dataset_samples)+'.dat'
     noise_datasets = unpickle(noise_dataset)
     noise_data = numpy.concatenate((noise_datasets['r']['data'],noise_datasets['g']['data'],noise_datasets['b']['data']),axis=0)
     noise_imgs = numpy.array(noise_data, dtype='float32')
@@ -520,11 +521,11 @@ if __name__ == '__main__':
     Width = Height = 32
     hidden = Width * Height * 2 // 3
 
-    training_epochs = 100000
+    training_epochs = 1000
     learning_rate =0.01
     batch_size = imgs.shape[0]
 
-    path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
+    path = 'training/trained_variables_' + dataset_base + '_'+ str(noise_dataset_samples) +'_' + str(training_epochs)+'.dat'
     isTrained =  os.path.isfile(path)
 #    imgs = imgs[:, 0:Width*Height]/255
 #    noise_imgs= noise_imgs[:, 0:Width*Height]/255
@@ -569,7 +570,7 @@ if __name__ == '__main__':
         bhid=noise_b,
         bvis=noise_b_p
     )
-    denoised_datasets = filterImages(noise_datasets,noiseDA,Width,Height, dataset_number, training_epochs)
+    denoised_datasets = filterImages(noise_datasets,noiseDA,Width,Height, dataset_base + '_' + str(noise_dataset_samples), training_epochs)
 #    idx = 500
 #    cleanX = imgs[idx]
 #    noiseX = noise_imgs[idx]
