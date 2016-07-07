@@ -309,16 +309,18 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     ############
     # TRAINING #
     ############
-
-    # go through training epochs
-    for epoch in range(training_epochs):
-        # go through trainng set
-        c = []
-        for batch_index in range(n_train_batches):
-            c.append(train_da(batch_index))
-
-        print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
-        
+#==============================================================================
+# 
+#     # go through training epochs
+#     for epoch in range(training_epochs):
+#         # go through trainng set
+#         c = []
+#         for batch_index in range(n_train_batches):
+#             c.append(train_da(batch_index))
+# 
+#         print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
+#         
+#==============================================================================
 
     end_time = timeit.default_timer()
 
@@ -380,7 +382,8 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
 
-        print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
+        if epoch % 1000 == 0:
+            print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
 
     end_time = timeit.default_timer()
 
@@ -515,9 +518,9 @@ if __name__ == '__main__':
     
     Width = Height = 32
     hidden = Width * Height * 2 // 3
-    training_epochs = 1000
+    training_epochs = 1000000
     learning_rate =0.01
-    batch_size =20
+    batch_size = 1000
     
     path = 'output/trained_variables' +dataset_number+'_' + str(training_epochs)+'.dat'
     isTrained =  os.path.isfile(path)
