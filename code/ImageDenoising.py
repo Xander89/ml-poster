@@ -35,7 +35,7 @@ def make_sure_path_exists(path):
             raise
 							
 
-class denoiseAutoEncoder(object):
+class dA(object):
     
     
     def __init__(
@@ -284,7 +284,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     theano_rng = RandomStreams(rng.randint(2 ** 30))
 
     noise_train_set_x = theano.shared(dataset)
-    da = denoiseAutoEncoder(
+    da = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=x,
@@ -352,7 +352,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
     noise_train_set_x = theano.shared(noise_dataset)
-    da = denoiseAutoEncoder(
+    da = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=x,
@@ -525,7 +525,7 @@ if __name__ == '__main__':
     Width = Height = 32
     hidden = Width * Height * 2 // 3
 
-    training_epochs = 1000
+    training_epochs = 20
     learning_rate =0.01
     batch_size = imgs.shape[0]
 
@@ -550,7 +550,7 @@ if __name__ == '__main__':
 
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
-    cleanDA = denoiseAutoEncoder(
+    cleanDA = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=imgs,
@@ -563,7 +563,7 @@ if __name__ == '__main__':
     )
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
-    noiseDA = denoiseAutoEncoder(
+    noiseDA = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
         input=imgs,
