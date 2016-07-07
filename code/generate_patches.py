@@ -101,7 +101,7 @@ def run():
     path = get_script_dir()
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--input', required=False, default=".", dest="input_folder", help='The input folder where to find the images.')
-    parser.add_argument('-o','--out', required=False, default="output", dest="output_folder", help='The output file.')
+    parser.add_argument('-o','--out', required=False, default="image_patch_data", dest="output_folder", help='The output file.')
     parser.add_argument('-n','--patch-size', required=False, nargs=2, default="32 32", dest="patch_size", help='The patch size for the image.')
     parser.add_argument('-p','--padding-size', required=False, nargs=2, default="2 2", dest="pad_size", help='The overlapping size for each patch.')
     

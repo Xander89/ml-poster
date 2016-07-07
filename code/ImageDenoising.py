@@ -27,7 +27,13 @@ try:
 except ImportError:
     import Image
 
-
+def make_sure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+							
 
 class denoiseAutoEncoder(object):
     
@@ -494,25 +500,23 @@ def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
             Z = evaluate(X)
             d[c]['data'][idx] = Z
             
-    path = 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.dat'
-    ff = open(path, "wb")
-    pickle.dump(d, ff)
-    ff.close()
-    recombine_image(d, 'output/' + 'denoised' + dataset_number + '_' +str(epochs) +'.png')
+
+    recombine_image(d, 'result_images/' + 'denoised' + dataset_number + '_' +str(epochs) +'.png')
     return d
 
 
 if __name__ == '__main__':
-
+    make_sure_path_exists("./image_patch_data")
+    make_sure_path_exists("./result_images")
     dataset_base = "rendering"
     dataset_name = dataset_base + "_10000"
-    dataset = 'output/' + dataset_name + '.dat'
+    dataset = 'image_patch_data/' + dataset_name + '.dat'
     datasets = unpickle(dataset)
     data = numpy.concatenate((datasets['r']['data'], datasets['g']['data'], datasets['b']['data']),axis=0)
     imgs = numpy.array(data, dtype='float32')
 
     noise_dataset_samples = 5
-    noise_dataset = 'output/' + dataset_base +'_'+ str(noise_dataset_samples)+'.dat'
+    noise_dataset = 'image_patch_data/' + dataset_base +'_'+ str(noise_dataset_samples)+'.dat'
     noise_datasets = unpickle(noise_dataset)
     noise_data = numpy.concatenate((noise_datasets['r']['data'],noise_datasets['g']['data'],noise_datasets['b']['data']),axis=0)
     noise_imgs = numpy.array(noise_data, dtype='float32')
