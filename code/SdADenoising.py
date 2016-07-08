@@ -44,7 +44,7 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 from logistic_sgd import LogisticRegression, load_data
 from mlp import HiddenLayer
-from ImageDenoising import dA, loadDatasets, filterImages
+from ImageDenoising import dA, loadDatasets, filterImages,saveImage
 
 
 # start-snippet-1
@@ -340,10 +340,39 @@ class SdA(object):
 
         return train_fn, valid_score, test_score
 
+
+    def get_denoised_patch_function(self, patch):
+         x = patch
+         for dA in self.dA_layers:
+             x = dA.get_hidden_values(x)
+         
+         z = self.dA_layers[-1].get_reconstructed_input(x)
+         return z
+
+
+def filterImagesSdA(noise_datasets, sda):
+    d = noise_datasets.copy()
+    rgb = ('r', 'g', 'b')
+    x = T.vector('x', dtype='float32')
+    evaluate = theano.function(
+        [x],
+        sda.get_denoised_patch_function(x)
+    )
+   
+    for c in rgb:
+        imgs = numpy.array(d[c]['data'], dtype='float32')
+        for idx in range(0, imgs.shape[0],1):
+#            print("denoising: " + c + str(idx) )
+            X = imgs[idx]
+            Z = evaluate(X)
+            d[c]['data'][idx] = Z
+            
+    return d
+
 #TODO change parameters to use our datasets
-def test_SdA(finetune_lr=0.1, pretraining_epochs=15,
+def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
              pretrain_lr=0.001, training_epochs=1000,
-             batch_size=100, Width = 32, Height = 32):
+             batch_size=3000, Width = 32, Height = 32):
 
     dataset_base = "rendering"
     dataset_name = dataset_base + "_10000"
@@ -371,7 +400,7 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=15,
     sda = SdA(
         numpy_rng=numpy_rng,
         n_ins=Width * Height,
-        hidden_layers_sizes=[1000, 1000, 1000],
+        hidden_layers_sizes=[500, 500, 500],
         n_outs=1024
     )
     # end-snippet-3 start-snippet-4
@@ -402,6 +431,10 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=15,
     print(('The pretraining code for file ' +
            os.path.split(__file__)[1] +
            ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
+    d = filterImagesSdA(noisy_datasets.copy(), sda)
+#    d = filterImages(noisy_datasets.copy(), sda.dA_layers[2])
+    saveImage(d, noise_dataset_name + "_" + str(training_epochs),
+                                     result_folder)
     # end-snippet-4
     ########################
     # FINETUNING THE MODEL #

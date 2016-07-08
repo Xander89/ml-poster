@@ -406,7 +406,7 @@ def loadTrainedData(path):
     results =(noise_W,noise_b,noise_b_p,hidden,Width,Height)
     return results
     
-def filterImages(noise_datasets, autoEncoder, W, H, image_file_name, results_folder="./result_images"):
+def filterImages(noise_datasets, autoEncoder):
     d = noise_datasets.copy()
     rgb = ('r', 'g', 'b')
     x = T.vector('x', dtype='float32')
@@ -414,18 +414,21 @@ def filterImages(noise_datasets, autoEncoder, W, H, image_file_name, results_fol
         [x],
         autoEncoder.get_denoised_patch_function(x)
     )
-    
+    print(autoEncoder.W.eval().shape, autoEncoder.W_prime.eval().shape)
     for c in rgb:
         imgs = numpy.array(d[c]['data'], dtype='float32')
         for idx in range(0, imgs.shape[0],1):
-            print("denoising: " + c + str(idx) )
+#            print("denoising: " + c + str(idx) )
             X = imgs[idx]
             Z = evaluate(X)
             d[c]['data'][idx] = Z
             
-    recombine_image(d, results_folder + os.sep +image_file_name + '.png')
     return d
 
+def saveImage(image_dict, image_file_name, results_folder="./result_images"):
+    recombine_image(image_dict, results_folder + os.sep +image_file_name + '.png')
+    
+    
 
 def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_patch_data",results_folder="./result_images"):
     make_sure_path_exists(source_folder)
@@ -490,7 +493,7 @@ if __name__ == '__main__':
         bhid=noise_b,
         bvis=noise_b_p
     )
-    denoised_datasets = filterImages(noisy_datasets,noiseDA,Width,Height, 
-                                     noise_dataset_name + "_" + str(training_epochs),
+    denoised_datasets = filterImages(noisy_datasets,noiseDA)
+    saveImage(denoised_datasets, noise_dataset_name + "_" + str(training_epochs),
                                      result_folder)
 
