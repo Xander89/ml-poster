@@ -141,6 +141,8 @@ class SdA(object):
             else:
                 layer_input = self.sigmoid_layers[-1].output
                 layer_noise_input = self.sigmoid_noise_layers[-1].output
+#                layer_input = self.dA_layers[-1].get_denoised_patch_function(self.dA_layers[-1].x)
+#                layer_noise_input = self.dA_layers[-1].get_denoised_patch_function(self.dA_layers[-1].noise_x)
 
             sigmoid_layer = HiddenLayer(rng=numpy_rng,
                                         input=layer_input,
@@ -166,7 +168,7 @@ class SdA(object):
             # Construct a denoising autoencoder that shared weights with this
             # layer
 
-            #TODO change parameters to match our constructor
+
             dA_layer = dA(numpy_rng=numpy_rng,
                           theano_rng=theano_rng,
                           input=layer_input,
@@ -372,7 +374,7 @@ def filterImagesSdA(noise_datasets, sda):
 #TODO change parameters to use our datasets
 def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
              pretrain_lr=0.001, training_epochs=1000,
-             batch_size=3000, Width = 32, Height = 32):
+             batch_size=20, Width = 32, Height = 32):
 
     dataset_base = "rendering"
     dataset_name = dataset_base + "_10000"
@@ -387,6 +389,7 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
     valid_set_x = theano.shared(clean_patches_f)
     test_set_x = theano.shared(clean_patches_f)
 
+    batch_size = clean_patches_f.shape[0]
 
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0]
@@ -400,7 +403,7 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
     sda = SdA(
         numpy_rng=numpy_rng,
         n_ins=Width * Height,
-        hidden_layers_sizes=[500, 500, 500],
+        hidden_layers_sizes=[1024],
         n_outs=1024
     )
     # end-snippet-3 start-snippet-4
@@ -416,7 +419,6 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
     print('... pre-training the model')
     start_time = timeit.default_timer()
     ## Pre-train layer-wise
-    corruption_levels = [.1, .2, .3]
     for i in range(sda.n_layers):
         # go through pretraining epochs
         for epoch in range(pretraining_epochs):
@@ -431,8 +433,12 @@ def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
     print(('The pretraining code for file ' +
            os.path.split(__file__)[1] +
            ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
-    d = filterImagesSdA(noisy_datasets.copy(), sda)
-#    d = filterImages(noisy_datasets.copy(), sda.dA_layers[2])
+    
+
+    d = clean_datasets.copy()
+    d = filterImagesSdA(d, sda)
+#    for dA in [sda.dA_layers[1]]:
+#        d = filterImages(d, dA)
     saveImage(d, noise_dataset_name + "_" + str(training_epochs),
                                      result_folder)
     # end-snippet-4

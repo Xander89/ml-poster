@@ -126,6 +126,7 @@ class dA(object):
                     n_visible,
                     dtype=theano.config.floatX
                 ),
+                name='b_prime',
                 borrow=True
             )
 
@@ -307,7 +308,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         }
     )
 
-    start_time = timeit.default_timer()
+#    start_time = timeit.default_timer()
 
     ############
     # TRAINING #
@@ -323,9 +324,9 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         if epoch % 100 == 0:
             print('Training epoch %d, cost ' % epoch, numpy.mean(c))
 
-    end_time = timeit.default_timer()
+#    end_time = timeit.default_timer()
 
-    training_time = (end_time - start_time)
+#    training_time = (end_time - start_time)
 
 #    print(('The 30% corruption code for file ' +
 #           os.path.split(__file__)[1] +
