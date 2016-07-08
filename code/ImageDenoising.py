@@ -205,7 +205,7 @@ class dA(object):
          z = self.get_reconstructed_input(y)
          return z
         
-    def get_cost_updates(self, corruption_level, learning_rate):
+    def get_cost_updates(self, learning_rate):
         """ This function computes the cost and the updates for one trainng
         step of the dA """
 
@@ -276,75 +276,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
 #        os.makedirs(output_folder)
 #    os.chdir(output_folder)
 
-    ####################################
-    # BUILDING THE MODEL NO CORRUPTION #
-    ####################################
-
-    rng = numpy.random.RandomState(123)
-    theano_rng = RandomStreams(rng.randint(2 ** 30))
-
-    noise_train_set_x = theano.shared(dataset)
-    da = dA(
-        numpy_rng=rng,
-        theano_rng=theano_rng,
-        input=x,
-        noiseInput=noise_x,
-        n_visible=Width * Height,
-        n_hidden=hidden
-    )
-
-    cost, updates = da.get_cost_updates(
-        corruption_level=0.,
-        learning_rate=learning_rate
-    )
-
-#    print(index)
-#    print(batch_size)
-#    print(train_set_x)
-    train_da = theano.function(
-        [index],
-        cost,
-        updates=updates,
-        givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size],
-            noise_x: noise_train_set_x[index * batch_size: (index + 1) * batch_size] 
-        }
-    )
-
-    start_time = timeit.default_timer()
-
-    ############
-    # TRAINING #
-    ############
-#==============================================================================
-# 
-#     # go through training epochs
-#     for epoch in range(training_epochs):
-#         # go through trainng set
-#         c = []
-#         for batch_index in range(n_train_batches):
-#             c.append(train_da(batch_index))
-# 
-#         print('Training epoch %d, cost ' % epoch)#, numpy.mean(c))
-#         
-#==============================================================================
-
-    end_time = timeit.default_timer()
-
-    training_time = (end_time - start_time)
-
-#    print(('The no corruption code for file ' +
-#           os.path.split(__file__)[1] +
-#           ' ran for %.2fm' % ((training_time) / 60.)), file=sys.stderr)
-#    image = Image.fromarray(
-#        tile_raster_images(X=da.W.get_value(borrow=True).T,
-#                           img_shape=(Width, Height), tile_shape=(10, 10),
-#                           tile_spacing=(1, 1)))
-#    image.save('filters_corruption_0.png')
-    W_corruption_0 = da.W
-    bhid_corruption_0 = da.b
-    bvis_corruption_0 = da.b_prime
-    # start-snippet-3
+ 
     #####################################
     # BUILDING THE MODEL CORRUPTION 30% #
     #####################################
@@ -362,7 +294,6 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     )
 
     cost, updates = da.get_cost_updates(
-        corruption_level=0.3,
         learning_rate=learning_rate
     )
 
@@ -410,11 +341,11 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
 #    # end-snippet-4
 #
 #    os.chdir('../')
-    W_corruption_30 = da.W
-    bhid_corruption_30 = da.b
-    bvis_corruption_30 = da.b_prime
-    results = (W_corruption_0, bhid_corruption_0,bvis_corruption_0,W_corruption_30,
-               bhid_corruption_30, bvis_corruption_30)
+    W_corruption = da.W
+    bhid_corruption = da.b
+    bvis_corruption = da.b_prime
+    results = (W_corruption,
+               bhid_corruption, bvis_corruption)
     return results
 
 
@@ -452,11 +383,8 @@ def showEncodeImage(data, autoEncoder, W, H):
     pyplot.figure()
     pyplot.show()
     
-def saveTrainedData(path,clean_W,clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height ):
+def saveTrainedData(path,noise_W, noise_b, noise_b_p,hidden, Width, Height ):
     d = {}
-    d["clean_W"] = {"data" : clean_W}
-    d["clean_b"] = {"data" : clean_b}
-    d["clean_b_p"] = {"data" : clean_b_p}
     d["noise_W"] = {"data" : noise_W}
     d["noise_b"] = {"data" : noise_b}
     d["noise_b_p"] = {"data" : noise_b_p}
@@ -469,19 +397,16 @@ def saveTrainedData(path,clean_W,clean_b, clean_b_p, noise_W, noise_b, noise_b_p
     
 def loadTrainedData(path):
     d = unpickle(path)
-    clean_W = d["clean_W"]["data"]
-    clean_b = d["clean_b"]["data"]
-    clean_b_p = d["clean_b_p"]["data"]
     noise_W = d["noise_W"]["data"]
     noise_b = d["noise_b"]["data"]
     noise_b_p = d["noise_b_p"]["data"]
     hidden = d["hidden"]["data"]
     Width = d["Width"]["data"]
     Height = d["Height"]["data"]
-    results =(clean_W,clean_b,clean_b_p,noise_W,noise_b,noise_b_p,hidden,Width,Height)
+    results =(noise_W,noise_b,noise_b_p,hidden,Width,Height)
     return results
     
-def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
+def filterImages(noise_datasets, autoEncoder, W, H, image_file_name, results_folder="./result_images"):
     d = noise_datasets.copy()
     rgb = ('r', 'g', 'b')
     x = T.vector('x', dtype='float32')
@@ -495,93 +420,77 @@ def filterImages(noise_datasets, autoEncoder, W, H,dataset_number, epochs):
         for idx in range(0, imgs.shape[0],1):
             print("denoising: " + c + str(idx) )
             X = imgs[idx]
-            #Y = autoEncoder.get_hidden_values(X)
-            #Z = autoEncoder.get_reconstructed_input(Y)
             Z = evaluate(X)
             d[c]['data'][idx] = Z
             
-
-    recombine_image(d, 'result_images/' + 'denoised' + dataset_number + '_' +str(epochs) +'.png')
+    recombine_image(d, results_folder + os.sep +image_file_name + '.png')
     return d
 
 
+def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_patch_data",results_folder="./result_images"):
+    make_sure_path_exists(source_folder)
+    make_sure_path_exists(results_folder)
+    
+    clean_dataset_path = source_folder + os.sep + reference_name + '.dat'
+    clean_datasets = unpickle(clean_dataset_path)
+    clean_patches = numpy.concatenate((clean_datasets['r']['data'], clean_datasets['g']['data'], clean_datasets['b']['data']),axis=0)
+    clean_patches_f = numpy.array(clean_patches, dtype='float32')
+
+    noisy_dataset_path = source_folder + os.sep + noisy_dataset_name +'.dat'
+    noisy_datasets = unpickle(noisy_dataset_path)
+    noisy_patches = numpy.concatenate((noisy_datasets['r']['data'],noisy_datasets['g']['data'],noisy_datasets['b']['data']),axis=0)
+    noisy_patches_f = numpy.array(noisy_patches, dtype='float32')
+    
+    return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets
+
 if __name__ == '__main__':
-    make_sure_path_exists("./image_patch_data")
-    make_sure_path_exists("./result_images")
+   
     dataset_base = "rendering"
     dataset_name = dataset_base + "_10000"
-    dataset = 'image_patch_data/' + dataset_name + '.dat'
-    datasets = unpickle(dataset)
-    data = numpy.concatenate((datasets['r']['data'], datasets['g']['data'], datasets['b']['data']),axis=0)
-    imgs = numpy.array(data, dtype='float32')
-
+    result_folder = "./result_images"
+    
     noise_dataset_samples = 5
-    noise_dataset = 'image_patch_data/' + dataset_base +'_'+ str(noise_dataset_samples)+'.dat'
-    noise_datasets = unpickle(noise_dataset)
-    noise_data = numpy.concatenate((noise_datasets['r']['data'],noise_datasets['g']['data'],noise_datasets['b']['data']),axis=0)
-    noise_imgs = numpy.array(noise_data, dtype='float32')
-
+    noise_dataset_name = dataset_base +'_'+ str(noise_dataset_samples)
+    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets = loadDatasets(dataset_name, noise_dataset_name)
     
     Width = Height = 32
     hidden = Width * Height * 2 // 3
 
     training_epochs = 20
     learning_rate =0.01
-    batch_size = imgs.shape[0]
+    batch_size = clean_patches_f.shape[0]
 
     path = 'training/trained_variables_' + dataset_base + '_'+ str(noise_dataset_samples) +'_' + str(training_epochs)+'.dat'
     isTrained =  os.path.isfile(path)
-#    imgs = imgs[:, 0:Width*Height]/255
-#    noise_imgs= noise_imgs[:, 0:Width*Height]/255
+
     if not isTrained:
-        clean_W, clean_b, clean_b_p, noise_W, noise_b, noise_b_p = test_dA(dataset=imgs,learning_rate=learning_rate,
+        noise_W, noise_b, noise_b_p = test_dA(dataset=clean_patches_f,learning_rate=learning_rate,
                                                 training_epochs=training_epochs,hidden=hidden,
                                                 Width = Width, Height = Height,
                                                 batch_size = batch_size,
-                                                noise_dataset=noise_imgs)
-        saveTrainedData(path,clean_W,clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height )
+                                                noise_dataset=noisy_patches_f)
+        saveTrainedData(path, noise_W, noise_b, noise_b_p,hidden, Width, Height )
     else:
-        clean_W, clean_b, clean_b_p, noise_W, noise_b, noise_b_p,hidden, Width, Height = loadTrainedData(path)
+        noise_W, noise_b, noise_b_p,hidden, Width, Height = loadTrainedData(path)
     
-    train_set_x = theano.shared(imgs)
-    noise_train_set_x = theano.shared(noise_imgs)
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
-
 
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
-    cleanDA = dA(
-        numpy_rng=rng,
-        theano_rng=theano_rng,
-        input=imgs,
-        noiseInput=imgs,
-        n_visible=Width * Height,
-        n_hidden=hidden,
-        W=clean_W,
-        bhid=clean_b,
-        bvis=clean_b_p
-    )
+
     rng = numpy.random.RandomState(123)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
     noiseDA = dA(
         numpy_rng=rng,
         theano_rng=theano_rng,
-        input=imgs,
-        noiseInput=noise_imgs,
+        input=clean_patches_f,
+        noiseInput=noisy_patches_f,
         n_visible=Width * Height,
         n_hidden=hidden,
         W=noise_W,
         bhid=noise_b,
         bvis=noise_b_p
     )
-    denoised_datasets = filterImages(noise_datasets,noiseDA,Width,Height, dataset_base + '_' + str(noise_dataset_samples), training_epochs)
-#    idx = 500
-#    cleanX = imgs[idx]
-#    noiseX = noise_imgs[idx]
-#    showEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
-#    showEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
-#    for idx in range(0, 1000, 50):
-#        cleanX = imgs[idx]
-#        noiseX = noise_imgs[idx]
-#        showEncodeImage(data=cleanX, autoEncoder=cleanDA, W=Width, H=Height)
-#        showEncodeImage(data=noiseX, autoEncoder=noiseDA, W=Width, H=Height)
+    denoised_datasets = filterImages(noisy_datasets,noiseDA,Width,Height, 
+                                     noise_dataset_name + "_" + str(training_epochs),
+                                     result_folder)
+
