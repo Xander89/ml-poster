@@ -343,8 +343,8 @@ def loadTrainedData(path):
     return results   
     
 #TODO change parameters to use our datasets
-def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
-             pretrain_lr=0.01, training_epochs=100,
+def test_SdA(finetune_lr=0.01, pretraining_epochs=10000,
+             pretrain_lr=0.01, training_epochs=10000,
              hidden_layers_fraction = [0.5, 0.5, 0.5],
              noise_dataset_samples = 5
              ):
@@ -408,8 +408,8 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
                 c = []
                 for batch_index in range(n_train_batches):
                     c.append(pretraining_fns[i](index=batch_index,lr=pretrain_lr))
-                
-                print('Pre-training layer %i, epoch %d, cost %f' % (i, epoch, numpy.mean(c)))
+                if epoch % 100 == 0:
+                    print('Pre-training layer %i, epoch %d, cost %f' % (i, epoch, numpy.mean(c)))
                 
         end_time = timeit.default_timer()
                
@@ -441,7 +441,8 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
             c = []
             for minibatch_index in range(n_train_batches):
                 c.append(train_fn(minibatch_index))
-            print('fine tuning, epoch %d, cost %f' % (epoch, numpy.mean(c)))
+            if epoch % 100 == 0:
+                print('fine tuning, epoch %d, cost %f' % (epoch, numpy.mean(c)))
         
         end_time = timeit.default_timer()
         

@@ -264,18 +264,10 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     
     # compute number of minibatches for training, validation and testing
     n_train_batches = train_set_x.get_value(borrow=True).shape[0] // batch_size
-   
-    # start-snippet-2
-    # allocate symbolic variables for the data
+
     index = T.lscalar()    # index to a [mini]batch
     x = T.matrix('x', dtype='float32')  # the data is presented as rasterized images
     noise_x = T.matrix('noise_x', dtype='float32')
-    # end-snippet-2
-
-#    if not os.path.isdir(output_folder):
-#        os.makedirs(output_folder)
-#    os.chdir(output_folder)
-
  
     #####################################
     # BUILDING THE MODEL CORRUPTION 30% #
@@ -307,7 +299,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         }
     )
 
-#    start_time = timeit.default_timer()
+    start_time = timeit.default_timer()
 
     ############
     # TRAINING #
@@ -319,28 +311,18 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         c = []
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
-
-        print('Training epoch %d, cost ' % epoch, numpy.mean(c))
+        if epoch % 100 == 0:
+            print('Training epoch %d, cost ' % epoch, numpy.mean(c))
  
 
-#    end_time = timeit.default_timer()
+    end_time = timeit.default_timer()
 
-#    training_time = (end_time - start_time)
+    training_time = (end_time - start_time)
 
-#    print(('The 30% corruption code for file ' +
-#           os.path.split(__file__)[1] +
-#           ' ran for %.2fm' % (training_time / 60.)), file=sys.stderr)
-    # end-snippet-3
-#
-#    # start-snippet-4
-#    image = Image.fromarray(tile_raster_images(
-#        X=da.W.get_value(borrow=True).T,
-#        img_shape=(Width, Height), tile_shape=(10, 10),
-#        tile_spacing=(1, 1)))
-#    image.save('filters_corruption_30.png')
-#    # end-snippet-4
-#
-#    os.chdir('../')
+    print(('The training code for file ' +
+           os.path.split(__file__)[1] +
+           ' ran for %.2fm' % (training_time / 60.)), file=sys.stderr)
+
     W_corruption = da.W
     bhid_corruption = da.b
     bvis_corruption = da.b_prime
@@ -458,9 +440,9 @@ if __name__ == '__main__':
     Height = patch_size[1]
     
     #PARAMETERS TO PLAY WITH
-    hidden_fraction = 0.8
+    hidden_fraction = 0.5
     hidden = int(hidden_fraction*Width * Height)
-    training_epochs = 100
+    training_epochs = 10000
     learning_rate =0.01
     
     
