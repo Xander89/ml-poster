@@ -349,7 +349,7 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=10000,
              noise_dataset_samples = 5
              ):
 
-    dataset_base = "rendering"
+    dataset_base = "sponzat_0"
     dataset_name = dataset_base + "_10000"
     result_folder = "./result_images"
     

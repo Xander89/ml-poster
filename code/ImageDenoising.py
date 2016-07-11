@@ -429,7 +429,7 @@ def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_pat
 
 if __name__ == '__main__':
    
-    dataset_base = "rendering"
+    dataset_base = "sponzat_0"
     dataset_name = dataset_base + "_10000"
     result_folder = "./result_images"
     
