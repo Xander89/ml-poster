@@ -58,7 +58,7 @@ class LogisticRegression(object):
     determine a class membership probability.
     """
 
-    def __init__(self, input, n_in, n_out):
+    def __init__(self, input, n_in, n_out, W=None, b=None):
         """ Initialize the parameters of the logistic regression
 
         :type input: theano.tensor.TensorType
@@ -76,24 +76,27 @@ class LogisticRegression(object):
         """
         # start-snippet-1
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
-        self.W = theano.shared(
-            value=numpy.zeros(
-                (n_in, n_out),
-                dtype=theano.config.floatX
-            ),
-            name='W',
-            borrow=True
-        )
+        if not W:
+            W = theano.shared(
+                value=numpy.zeros(
+                    (n_in, n_out),
+                    dtype=theano.config.floatX
+                ),
+                name='W',
+                borrow=True
+            )
+        self.W = W
         # initialize the biases b as a vector of n_out 0s
-        self.b = theano.shared(
-            value=numpy.zeros(
-                (n_out,),
-                dtype=theano.config.floatX
-            ),
-            name='b',
-            borrow=True
-        )
-
+        if not b:
+            b = theano.shared(
+                value=numpy.zeros(
+                    (n_out,),
+                    dtype=theano.config.floatX
+                ),
+                name='b',
+                borrow=True
+            )
+        self.b = b
         # symbolic expression for computing the matrix of class-membership
         # probabilities
         # Where:
@@ -103,7 +106,7 @@ class LogisticRegression(object):
         # b is a vector where element-k represent the free parameter of
         # hyperplane-k
         self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
-
+        self.output = T.nnet.sigmoid(T.dot(input, self.W) + self.b)
         # symbolic description of how to compute prediction as class whose
         # probability is maximal
         self.y_pred = T.argmax(self.p_y_given_x, axis=1)
@@ -115,6 +118,7 @@ class LogisticRegression(object):
         # keep track of model input
         self.input = input
 
+    
     def negative_log_likelihood(self, y):
         """Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
@@ -171,7 +175,21 @@ class LogisticRegression(object):
         else:
             raise NotImplementedError()
 
-
+    def cost_function(self, input):
+        L = - T.sum(input * T.log(self.output) + (1 - input) * T.log(1 - self.output), axis=1)
+        # note : L is now a vector, where each element is the
+        #        cross-entropy cost of the reconstruction of the
+        #        corresponding example of the minibatch. We need to
+        #        compute the average of all these to get the cost of
+        #        the minibatch
+        cost = T.mean(L)
+        cost = T.sqrt(T.sum(T.sqr(self.output - input)))
+        return cost
+        
+    def get_denoised_patch_function(self, input):
+        """ Computes the values of the hidden layer """
+        return T.nnet.sigmoid(T.dot(input, self.W) + self.b)
+        
 def load_data(dataset):
     ''' Loads the dataset
 

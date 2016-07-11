@@ -37,7 +37,7 @@ import sys
 import timeit
 
 import numpy
-
+import pickle
 import theano
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -93,7 +93,7 @@ class SdA(object):
                                   layer
         """
 
-        self.sigmoid_layers = []
+#        self.sigmoid_layers = []
         self.sigmoid_noise_layers = []
         self.dA_layers = []
         self.params = []
@@ -139,32 +139,28 @@ class SdA(object):
                 layer_input = self.x
                 layer_noise_input = self.noise_x
             else:
-                layer_input = self.sigmoid_layers[-1].output
+                layer_input = self.x
+                for ddAA in self.dA_layers:
+                    layer_input = ddAA.get_hidden_values(layer_input)
+#                theano.printing.debugprint(layer_input)
                 layer_noise_input = self.sigmoid_noise_layers[-1].output
-#                layer_input = self.dA_layers[-1].get_denoised_patch_function(self.dA_layers[-1].x)
-#                layer_noise_input = self.dA_layers[-1].get_denoised_patch_function(self.dA_layers[-1].noise_x)
+#                theano.printing.debugprint(layer_noise_input)
 
-            sigmoid_layer = HiddenLayer(rng=numpy_rng,
-                                        input=layer_input,
-                                        n_in=input_size,
-                                        n_out=hidden_layers_sizes[i],
-                                        activation=T.nnet.sigmoid)
-            
             sigmoid_noise_layer = HiddenLayer(rng=numpy_rng,
                                         input=layer_noise_input,
                                         n_in=input_size,
                                         n_out=hidden_layers_sizes[i],
                                         activation=T.nnet.sigmoid)
             # add the layer to our list of layers
-            self.sigmoid_layers.append(sigmoid_layer)
+
             self.sigmoid_noise_layers.append(sigmoid_noise_layer)
             # its arguably a philosophical question...
             # but we are going to only declare that the parameters of the
             # sigmoid_layers are parameters of the StackedDAA
             # the visible biases in the dA are parameters of those
             # dA, but not the SdA
-            self.params.extend(sigmoid_layer.params)
-
+            self.params.extend(sigmoid_noise_layer.params)
+            
             # Construct a denoising autoencoder that shared weights with this
             # layer
 
@@ -175,13 +171,13 @@ class SdA(object):
                           noiseInput = layer_noise_input,
                           n_visible=input_size,
                           n_hidden=hidden_layers_sizes[i],
-                          W=sigmoid_layer.W,
-                          bhid=sigmoid_layer.b)
+                          W=sigmoid_noise_layer.W,
+                          bhid=sigmoid_noise_layer.b)
             self.dA_layers.append(dA_layer)
         # end-snippet-2
         # We now need to add a logistic layer on top of the MLP
         self.logLayer = LogisticRegression(
-            input=self.sigmoid_layers[-1].output,
+            input=self.sigmoid_noise_layers[-1].output,
             n_in=hidden_layers_sizes[-1],
             n_out=n_outs
         )
@@ -191,11 +187,11 @@ class SdA(object):
 
         # compute the cost for second phase of training,
         # defined as the negative log likelihood
-        self.finetune_cost = self.logLayer.negative_log_likelihood(self.y)
+        self.finetune_cost = self.logLayer.cost_function(self.x)
         # compute the gradients with respect to the model parameters
         # symbolic variable that points to the number of errors made on the
         # minibatch given by self.x and self.y
-        self.errors = self.logLayer.errors(self.y)
+#        self.errors = self.logLayer.errors(self.y)
 
     def pretraining_functions(self, train_set_x, train_set_x_noise, batch_size):
         ''' Generates a list of functions, each of them implementing one
@@ -248,7 +244,7 @@ class SdA(object):
 
         return pretrain_fns
 
-    def build_finetune_functions(self, datasets, batch_size, learning_rate):
+    def build_finetune_functions(self, train_set_x, train_set_x_noise, batch_size, learning_rate):
         '''Generates a function `train` that implements one step of
         finetuning, a function `validate` that computes the error on
         a batch from the validation set, and a function `test` that
@@ -267,16 +263,6 @@ class SdA(object):
         :type learning_rate: float
         :param learning_rate: learning rate used during finetune stage
         '''
-
-        (train_set_x, train_set_y) = datasets[0]
-        (valid_set_x, valid_set_y) = datasets[1]
-        (test_set_x, test_set_y) = datasets[2]
-
-        # compute number of minibatches for training, validation and testing
-        n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-        n_valid_batches //= batch_size
-        n_test_batches = test_set_x.get_value(borrow=True).shape[0]
-        n_test_batches //= batch_size
 
         index = T.lscalar('index')  # index to a [mini]batch
 
@@ -297,60 +283,26 @@ class SdA(object):
                 self.x: train_set_x[
                     index * batch_size: (index + 1) * batch_size
                 ],
-                self.y: train_set_y[
+                self.noise_x: train_set_x_noise[
                     index * batch_size: (index + 1) * batch_size
                 ]
             },
             name='train'
         )
+        return train_fn
 
-        test_score_i = theano.function(
-            [index],
-            self.errors,
-            givens={
-                self.x: test_set_x[
-                    index * batch_size: (index + 1) * batch_size
-                ],
-                self.y: test_set_y[
-                    index * batch_size: (index + 1) * batch_size
-                ]
-            },
-            name='test'
-        )
-
-        valid_score_i = theano.function(
-            [index],
-            self.errors,
-            givens={
-                self.x: valid_set_x[
-                    index * batch_size: (index + 1) * batch_size
-                ],
-                self.y: valid_set_y[
-                    index * batch_size: (index + 1) * batch_size
-                ]
-            },
-            name='valid'
-        )
-
-        # Create a function that scans the entire validation set
-        def valid_score():
-            return [valid_score_i(i) for i in range(n_valid_batches)]
-
-        # Create a function that scans the entire test set
-        def test_score():
-            return [test_score_i(i) for i in range(n_test_batches)]
-
-        return train_fn, valid_score, test_score
 
 
     def get_denoised_patch_function(self, patch):
          x = patch
          for dA in self.dA_layers:
              x = dA.get_hidden_values(x)
-         
-         z = self.dA_layers[-1].get_reconstructed_input(x)
+#             z = dA.get_reconstructed_input(x)
+             
+         z = self.logLayer.get_denoised_patch_function(x)
          return z
-
+#         z = self.dA_layers[-1].get_reconstructed_input(x)
+#         return x
 
 def filterImagesSdA(noise_datasets, sda):
     d = noise_datasets.copy()
@@ -371,161 +323,138 @@ def filterImagesSdA(noise_datasets, sda):
             
     return d
 
+def unpickle(file):  
+    fo = open(file, 'rb')
+    d = pickle.load(fo)
+    fo.close()
+    return d
+
+def saveTrainedData(path, sda):
+    d = {}
+    d["SdA"] = {"data" : sda}
+    ff = open(path, "wb")
+    pickle.dump(d, ff)
+    ff.close()
+ 
+def loadTrainedData(path):
+    d = unpickle(path)
+    sda = d["SdA"]["data"]
+    results =(sda)
+    return results   
+    
 #TODO change parameters to use our datasets
-def test_SdA(finetune_lr=0.1, pretraining_epochs=100,
-             pretrain_lr=0.001, training_epochs=1000,
-             batch_size=20, Width = 32, Height = 32):
+def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
+             pretrain_lr=0.01, training_epochs=100,
+             hidden_layers_fraction = [0.5, 0.5, 0.5],
+             noise_dataset_samples = 5
+             ):
 
     dataset_base = "rendering"
     dataset_name = dataset_base + "_10000"
     result_folder = "./result_images"
     
-    noise_dataset_samples = 5
+    
     noise_dataset_name = dataset_base +'_'+ str(noise_dataset_samples)
-    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets = loadDatasets(dataset_name, noise_dataset_name)
-
+    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets, patch_size = loadDatasets(dataset_name, noise_dataset_name)
+    Width = patch_size[0]
+    Height= patch_size[1]
+    hidden_layers_sizes = [int(f*Width * Height) for f in hidden_layers_fraction]
+    layers_string = ""
+    for idx in xrange(len(hidden_layers_sizes)):
+        layers_string = layers_string + "_" +str(idx)+ "L"  +str(hidden_layers_sizes[idx])
+    parameters_name = ('_SdA_pretrain' + str(pretraining_epochs)+ '_tuning'+ str(training_epochs) 
+                      + layers_string + '_tunerate' + str(finetune_lr) 
+                      + '_pretrainrate' + str(pretrain_lr)+'_W' +str(Width))
+    path = 'training/trained_variables_' + noise_dataset_name + parameters_name +'.dat'
     train_set_x = theano.shared(clean_patches_f)
     train_set_x_noise = theano.shared(noisy_patches_f)
-    valid_set_x = theano.shared(clean_patches_f)
-    test_set_x = theano.shared(clean_patches_f)
 
-    batch_size = clean_patches_f.shape[0]
-
-    # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0]
-    n_train_batches //= batch_size
-
-    # numpy random generator
-    # start-snippet-3
-    numpy_rng = numpy.random.RandomState(89677)
-    print('... building the model')
-    # construct the stacked denoising autoencoder class
-    sda = SdA(
-        numpy_rng=numpy_rng,
-        n_ins=Width * Height,
-        hidden_layers_sizes=[1024],
-        n_outs=1024
-    )
-    # end-snippet-3 start-snippet-4
-    #########################
-    # PRETRAINING THE MODEL #
-    #########################
-    print('... getting the pretraining functions')
- 
-    pretraining_fns = sda.pretraining_functions(train_set_x=train_set_x,
-                                                train_set_x_noise = train_set_x_noise,
-                                                batch_size=batch_size)
-
-    print('... pre-training the model')
-    start_time = timeit.default_timer()
-    ## Pre-train layer-wise
-    for i in range(sda.n_layers):
-        # go through pretraining epochs
-        for epoch in range(pretraining_epochs):
-            # go through the training set
+    isTrained =  os.path.isfile(path)
+    if not isTrained:
+        batch_size = clean_patches_f.shape[0]
+        
+        # compute number of minibatches for training, validation and testing
+        n_train_batches = train_set_x.get_value(borrow=True).shape[0]
+        n_train_batches //= batch_size
+        
+        # numpy random generator
+        # start-snippet-3
+        numpy_rng = numpy.random.RandomState(1)
+        print('... building the model')
+        # construct the stacked denoising autoencoder class
+        sda = SdA(
+            numpy_rng=numpy_rng,
+            n_ins=Width * Height,
+            hidden_layers_sizes=hidden_layers_sizes,
+            n_outs=Width * Height
+        )
+        # end-snippet-3 start-snippet-4
+        #########################
+        # PRETRAINING THE MODEL #
+        #########################
+        print('... getting the pretraining functions')
+         
+        pretraining_fns = sda.pretraining_functions(train_set_x=train_set_x,
+                                                    train_set_x_noise = train_set_x_noise,
+                                                    batch_size=batch_size)
+        
+        print('... pre-training the model')
+        start_time = timeit.default_timer()
+        ## Pre-train layer-wise
+        for i in range(sda.n_layers):
+            # go through pretraining epochs
+            for epoch in range(pretraining_epochs):
+                # go through the training set
+                c = []
+                for batch_index in range(n_train_batches):
+                    c.append(pretraining_fns[i](index=batch_index,lr=pretrain_lr))
+                
+                print('Pre-training layer %i, epoch %d, cost %f' % (i, epoch, numpy.mean(c)))
+                
+        end_time = timeit.default_timer()
+               
+        print(('The pretraining code for file ' +
+               os.path.split(__file__)[1] +
+               ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
+        ########################
+        # FINETUNING THE MODEL #
+        ########################
+        
+        # get the training, validation and testing function for the model
+        print('... getting the finetuning functions')
+        train_fn = sda.build_finetune_functions(
+            train_set_x = train_set_x,
+            train_set_x_noise = train_set_x_noise,
+            batch_size=batch_size,
+            learning_rate=finetune_lr
+        )
+        
+        print('... finetunning the model')
+        
+        start_time = timeit.default_timer()
+        
+        
+        epoch = 0
+        
+        while (epoch < training_epochs): # and (not done_looping)
+            epoch = epoch + 1
             c = []
-            for batch_index in range(n_train_batches):
-                c.append(pretraining_fns[i](index=batch_index,lr=pretrain_lr))
-            print('Pre-training layer %i, epoch %d, cost %f' % (i, epoch, numpy.mean(c)))
+            for minibatch_index in range(n_train_batches):
+                c.append(train_fn(minibatch_index))
+            print('fine tuning, epoch %d, cost %f' % (epoch, numpy.mean(c)))
+        
+        end_time = timeit.default_timer()
+        
+        print(('The training code for file ' +
+               os.path.split(__file__)[1] +
+               ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
+    if isTrained:
+        sda = loadTrainedData(path)
 
-    end_time = timeit.default_timer()
-
-    print(('The pretraining code for file ' +
-           os.path.split(__file__)[1] +
-           ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
-    
-
-    d = clean_datasets.copy()
-    d = filterImagesSdA(d, sda)
-#    for dA in [sda.dA_layers[1]]:
-#        d = filterImages(d, dA)
-    saveImage(d, noise_dataset_name + "_" + str(training_epochs),
+    d = filterImagesSdA(noisy_datasets, sda)
+    saveTrainedData(path, sda)
+    saveImage(d, noise_dataset_name  + parameters_name,
                                      result_folder)
-    # end-snippet-4
-    ########################
-    # FINETUNING THE MODEL #
-    ########################
-#
-#    # get the training, validation and testing function for the model
-#    print('... getting the finetuning functions')
-#    train_fn, validate_model, test_model = sda.build_finetune_functions(
-#        datasets=datasets,
-#        batch_size=batch_size,
-#        learning_rate=finetune_lr
-#    )
-#
-#    print('... finetunning the model')
-#    # early-stopping parameters
-#    patience = 10 * n_train_batches  # look as this many examples regardless
-#    patience_increase = 2.  # wait this much longer when a new best is
-#                            # found
-#    improvement_threshold = 0.995  # a relative improvement of this much is
-#                                   # considered significant
-#    validation_frequency = min(n_train_batches, patience // 2)
-#                                  # go through this many
-#                                  # minibatche before checking the network
-#                                  # on the validation set; in this case we
-#                                  # check every epoch
-#
-#    best_validation_loss = numpy.inf
-#    test_score = 0.
-#    start_time = timeit.default_timer()
-#
-#    done_looping = False
-#    epoch = 0
-#
-#    while (epoch < training_epochs) and (not done_looping):
-#        epoch = epoch + 1
-#        for minibatch_index in range(n_train_batches):
-#            minibatch_avg_cost = train_fn(minibatch_index)
-#            iter = (epoch - 1) * n_train_batches + minibatch_index
-#
-#            if (iter + 1) % validation_frequency == 0:
-#                validation_losses = validate_model()
-#                this_validation_loss = numpy.mean(validation_losses)
-#                print('epoch %i, minibatch %i/%i, validation error %f %%' %
-#                      (epoch, minibatch_index + 1, n_train_batches,
-#                       this_validation_loss * 100.))
-#
-#                # if we got the best validation score until now
-#                if this_validation_loss < best_validation_loss:
-#
-#                    #improve patience if loss improvement is good enough
-#                    if (
-#                        this_validation_loss < best_validation_loss *
-#                        improvement_threshold
-#                    ):
-#                        patience = max(patience, iter * patience_increase)
-#
-#                    # save best validation score and iteration number
-#                    best_validation_loss = this_validation_loss
-#                    best_iter = iter
-#
-#                    # test it on the test set
-#                    test_losses = test_model()
-#                    test_score = numpy.mean(test_losses)
-#                    print(('     epoch %i, minibatch %i/%i, test error of '
-#                           'best model %f %%') %
-#                          (epoch, minibatch_index + 1, n_train_batches,
-#                           test_score * 100.))
-#
-#            if patience <= iter:
-#                done_looping = True
-#                break
-#
-#    end_time = timeit.default_timer()
-#    print(
-#        (
-#            'Optimization complete with best validation score of %f %%, '
-#            'on iteration %i, '
-#            'with test performance %f %%'
-#        )
-#        % (best_validation_loss * 100., best_iter + 1, test_score * 100.)
-#    )
-#    print(('The training code for file ' +
-#           os.path.split(__file__)[1] +
-#           ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
-
-
+#    # end-snippet-4
 if __name__ == '__main__':
     test_SdA()

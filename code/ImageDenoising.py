@@ -232,7 +232,6 @@ class dA(object):
         # to its parameters
         gparams = T.grad(cost, self.params)
  
-        print(gparams)
         #gparams[0] = gparams[0] + learning_rate * self.params[0] / self.params[0].size
         # generate the list of updates
         updates = [
@@ -282,7 +281,7 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
     # BUILDING THE MODEL CORRUPTION 30% #
     #####################################
 
-    rng = numpy.random.RandomState(123)
+    rng = numpy.random.RandomState(1)
     theano_rng = RandomStreams(rng.randint(2 ** 30))
     noise_train_set_x = theano.shared(noise_dataset)
     da = dA(
@@ -321,8 +320,8 @@ def test_dA(Width = 32, Height = 32, hidden = 800, learning_rate=0.1, training_e
         for batch_index in range(n_train_batches):
             c.append(train_da(batch_index))
 
-        if epoch % 100 == 0:
-            print('Training epoch %d, cost ' % epoch, numpy.mean(c))
+        print('Training epoch %d, cost ' % epoch, numpy.mean(c))
+ 
 
 #    end_time = timeit.default_timer()
 
@@ -415,7 +414,6 @@ def filterImages(noise_datasets, autoEncoder):
         [x],
         autoEncoder.get_denoised_patch_function(x)
     )
-    print(autoEncoder.W.eval().shape, autoEncoder.W_prime.eval().shape)
     for c in rgb:
         imgs = numpy.array(d[c]['data'], dtype='float32')
         for idx in range(0, imgs.shape[0],1):
@@ -444,8 +442,8 @@ def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_pat
     noisy_datasets = unpickle(noisy_dataset_path)
     noisy_patches = numpy.concatenate((noisy_datasets['r']['data'],noisy_datasets['g']['data'],noisy_datasets['b']['data']),axis=0)
     noisy_patches_f = numpy.array(noisy_patches, dtype='float32')
-    
-    return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets
+    patch_size = noisy_datasets['patch_size']
+    return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets,patch_size
 
 if __name__ == '__main__':
    
@@ -455,16 +453,20 @@ if __name__ == '__main__':
     
     noise_dataset_samples = 5
     noise_dataset_name = dataset_base +'_'+ str(noise_dataset_samples)
-    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets = loadDatasets(dataset_name, noise_dataset_name)
+    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets, patch_size = loadDatasets(dataset_name, noise_dataset_name)
+    Width = patch_size[0]
+    Height = patch_size[1]
     
-    Width = Height = 32
-    hidden = Width * Height * 2 // 3
-
-    training_epochs = 20
+    #PARAMETERS TO PLAY WITH
+    hidden_fraction = 0.8
+    hidden = int(hidden_fraction*Width * Height)
+    training_epochs = 100
     learning_rate =0.01
+    
+    
     batch_size = clean_patches_f.shape[0]
-
-    path = 'training/trained_variables_' + dataset_base + '_'+ str(noise_dataset_samples) +'_' + str(training_epochs)+'.dat'
+    parameters_string = '_dA_epochs' + str(training_epochs) +'_hidden' + str(hidden) + '_lrate' + str(learning_rate) +'_W' +str(Width)
+    path = 'training/trained_variables_' + noise_dataset_name + parameters_string + '.dat'
     isTrained =  os.path.isfile(path)
 
     if not isTrained:
@@ -495,6 +497,6 @@ if __name__ == '__main__':
         bvis=noise_b_p
     )
     denoised_datasets = filterImages(noisy_datasets,noiseDA)
-    saveImage(denoised_datasets, noise_dataset_name + "_" + str(training_epochs),
+    saveImage(denoised_datasets, noise_dataset_name  + parameters_string,
                                      result_folder)
 

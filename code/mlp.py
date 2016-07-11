@@ -39,8 +39,7 @@ from logistic_sgd import LogisticRegression, load_data
 
 # start-snippet-1
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, W=None, b=None, W_prime=None,
-                 b_prime=None,
+    def __init__(self, rng, input, n_in, n_out, W=None, b=None,
                  activation=T.tanh):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
@@ -93,43 +92,34 @@ class HiddenLayer(object):
             )
             if activation == theano.tensor.nnet.sigmoid:
                 W_values *= 4
-            print(W_values.shape)
+            
             W = theano.shared(value=W_values, name='W', borrow=True)
             
-        if W_prime is None:
-            W_values_prime = W_values.T
-            print(W_values_prime.shape)
-            if activation == theano.tensor.nnet.sigmoid:
-                W_values_prime *= 4
-            W_prime = theano.shared(value=W_values_prime, name='W_prime', borrow=True)
             
         if b is None:
             b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
-            
-        if b_prime is None:
-            b_values_prime = numpy.zeros((n_out,), dtype=theano.config.floatX)
-            b_prime = theano.shared(value=b_values_prime, name='b_prime', borrow=True)
-
+               
         self.W = W
-        self.W_prime = self.W.T
-        self.b = b
-        self.b_prime = b_prime
-        
+        self.b = b        
         lin_output = T.dot(input, self.W) + self.b
-        decoded_output = T.dot(lin_output, self.W_prime) + self.b_prime
+        self.activation = activation
         self.output = (
             lin_output if activation is None
             else activation(lin_output)
         )
-        self.decoded_output = (
-            decoded_output if activation is None
-            else activation(decoded_output)
-        )
+
         
         # parameters of the model
         self.params = [self.W, self.b]
-
+        
+        def get_hidden_layer(self, input):
+            output = T.dot(input, self.W) + self.b
+            output = (
+                    output if activation is None
+                      else activation(output)
+            )
+            return output
 
 # start-snippet-2
 class MLP(object):
