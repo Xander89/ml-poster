@@ -139,10 +139,11 @@ def extract_random_patches(colors, dimensions, pad_size, patch_size, fi, normali
 def run(): 
     path = get_script_dir()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i','--input', required=False, default="./test_sponza_single", dest="input_folder", help='The input folder where to find the images.')
+    parser.add_argument('-i','--input', required=False, default=".", dest="input_folder", help='The input folder where to find the images.')
     parser.add_argument('-o','--out', required=False, default="image_patch_data", dest="output_folder", help='The output file.')
     parser.add_argument('-n','--patch-size', required=False, nargs=2, default="16 16", dest="patch_size", help='The patch size for the image.')
     parser.add_argument('-p','--padding-size', required=False, nargs=2, default="2 2", dest="pad_size", help='The overlapping size for each patch.')
+    parser.add_argument('--do-not-normalize', required=False, action="store_false",dest="normalize", help="Do not contrast normalize input data.")    
     
     args = parser.parse_args(sys.argv[1:])
     
@@ -168,7 +169,7 @@ def run():
     for t in tuples:
         path = output
         file_base = path + "/" + t[2] 
-        print("Processing " + t[0] +" in folder "+ path + "...")
+        print("Processing " + t[0] +" in folder "+ path + "... (normalize = " + str(args.normalize) + ")")
         f = open(t[0])
         lines = [line.rstrip('\n') for line in f]    
         frame = int(lines[0])
@@ -181,16 +182,10 @@ def run():
         raw_f.close()
         colors = [data[range(i,data.size,3)] for i in range(3)]
         colors = [np.reshape(r, (width, height)) for r in colors]
-        d = extract_patches(colors, np.array([width, height]), pad_size, patch_size, file_base, True)
+        d = extract_patches(colors, np.array([width, height]), pad_size, patch_size, file_base, args.normalize)
         ff = open(path + "/" + t[2] + ".dat", "wb")
         pickle.dump(d, ff)
         ff.close()
-    
-        # Testing random patches
-        #d_new = extract_random_patches_dict(d, 0.1)
-        #recombine_image(d_new, path + "/" + t[2] + "_01.png")
-        #d_new = extract_random_patches_dict(d, 0.5)
-        #recombine_image(d_new, path + "/" + t[2] + "_05.png")
         
 if __name__ == '__main__':
     run()
