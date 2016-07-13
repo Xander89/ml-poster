@@ -48,6 +48,16 @@ import numpy
 import theano
 import theano.tensor as T
 
+def get_cost_function(ref, output):
+    #L = - T.sum(ref * T.log(output) + (1 - ref) * T.log(1 - output), axis=1)
+    # note : L is now a vector, where each element is the
+    #        cross-entropy cost of the reconstruction of the
+    #        corresponding example of the minibatch. We need to
+    #        compute the average of all these to get the cost of
+    #        the minibatch
+    #cost = T.mean(L)
+    return T.sqrt(T.sum(T.sqr(ref - output)))
+
 
 class LogisticRegression(object):
     """Multi-class Logistic Regression Class
@@ -176,15 +186,7 @@ class LogisticRegression(object):
             raise NotImplementedError()
 
     def cost_function(self, input):
-        L = - T.sum(input * T.log(self.output) + (1 - input) * T.log(1 - self.output), axis=1)
-        # note : L is now a vector, where each element is the
-        #        cross-entropy cost of the reconstruction of the
-        #        corresponding example of the minibatch. We need to
-        #        compute the average of all these to get the cost of
-        #        the minibatch
-        cost = T.mean(L)
-        cost = T.sqrt(T.sum(T.sqr(self.output - input)))
-        return cost
+        return get_cost_function(input, self.output)
         
     def get_denoised_patch_function(self, input):
         """ Computes the values of the hidden layer """

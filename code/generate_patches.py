@@ -117,25 +117,25 @@ def extract_patches(colors, dimensions, pad_size, patch_size, fi, normalize_cont
     d["image_size"] = dimensions
     return d
 
-def extract_random_patches_dict(d, percentage = 0.1):
+#gives a matrix random matrix of choices for the patches
+def get_random_patches_selection(d, percentage = 0.1):
+    data_size = d["r"]["data"].shape[0];
+    return np.random.choice(data_size, int(data_size * percentage), replace=False)
+
+def extract_random_patches_dict(d, chosen_patches):
     new_d = {}
     new_d["patch_size"] = d["patch_size"]
     new_d["pad_size"] = d["pad_size"]
     new_d["image_size"] = d["image_size"]
     
-    data_size = d["r"]["data"].shape[0];
-    chosen = np.random.choice(data_size, int(data_size * percentage), replace=False)
     for i in range(3):
         channel = rgb_names[i]
         data = d[channel]["data"]
-        selected_patches = data[chosen,:] 
+        selected_patches = data[chosen_patches,:] 
         new_d[channel] = {"data":selected_patches}
     return new_d        
 
-def extract_random_patches(colors, dimensions, pad_size, patch_size, fi, normalize_contrast = False, percentage = 0.1):
-    d = extract_patches(colors, dimensions, pad_size, patch_size, fi, normalize_contrast)
-    return extract_random_patches(d, percentage)
-    
+
 def run(): 
     path = get_script_dir()
     parser = argparse.ArgumentParser()
@@ -182,7 +182,7 @@ def run():
         raw_f.close()
         colors = [data[range(i,data.size,3)] for i in range(3)]
         colors = [np.reshape(r, (width, height)) for r in colors]
-        d = extract_patches(colors, np.array([width, height]), pad_size, patch_size, file_base, args.normalize)
+        d = extract_patches(colors, np.array([width, height]), pad_size, patch_size, file_base, False)
         ff = open(path + "/" + t[2] + ".dat", "wb")
         pickle.dump(d, ff)
         ff.close()
