@@ -394,7 +394,8 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
         layers_string = layers_string + "_" +str(idx)+ "L"  +str(hidden_layers_sizes[idx])
     parameters_name = ("_SdA_pretrain" + str(pretraining_epochs)+ "_tuning"+ str(training_epochs) 
                       + layers_string + "_tunerate" + str(finetune_lr) 
-                      + "_pretrainrate" + str(pretrain_lr)+"_W" +str(Width))
+                      + "_pretrainrate" + str(pretrain_lr)+"_W" +str(Width)
+                      +'_batchsize' + str(batch_size))
     path = "training/trained_variables_" + noise_dataset_name + parameters_name +".dat"
     train_set_x = theano.shared(clean_patches_f)
     train_set_x_noise = theano.shared(noisy_patches_f)
