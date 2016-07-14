@@ -99,6 +99,7 @@ def extract_patches(colors, dimensions, pad_size, patch_size, fi, normalize_cont
                 initial_pixel = np.array([j,k])*step
                 final_pixel = initial_pixel + patch_size
                 patch = color[initial_pixel[0]:final_pixel[0],:][:,initial_pixel[1]:final_pixel[1]]
+#                patch = np.clip(patch,0,1)
                 if output_images:
                     scipy.misc.toimage(patch, cmin=0.0, cmax=1.0).save(file_base+ "_" + str(j) + "_" + str(k) + ".png")
                 patch = np.reshape(patch, patch.size)

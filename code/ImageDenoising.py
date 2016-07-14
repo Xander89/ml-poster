@@ -407,23 +407,25 @@ def filterImages(noise_datasets, autoEncoder):
     return d
 
 def saveImage(image_dict, image_file_name, results_folder="./result_images"):
+    make_sure_path_exists(results_folder)
     recombine_image(image_dict, results_folder + os.sep +image_file_name + '.png')
     
-    
-
-def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_patch_data",results_folder="./result_images"):
+def loadDataset(name, source_folder = "./image_patch_data"):
     make_sure_path_exists(source_folder)
-    make_sure_path_exists(results_folder)
     
-    clean_dataset_path = source_folder + os.sep + reference_name + '.dat'
-    clean_datasets = unpickle(clean_dataset_path)
-    clean_patches = numpy.concatenate((clean_datasets['r']['data'], clean_datasets['g']['data'], clean_datasets['b']['data']),axis=0)
-    clean_patches_f = numpy.array(clean_patches, dtype='float32')
+    
+    dataset_path = source_folder + os.sep + name + '.dat'
+    datasets = unpickle(dataset_path)
+    patches = numpy.concatenate((datasets['r']['data'], datasets['g']['data'], datasets['b']['data']),axis=0)
+    patches_f = numpy.array(patches, dtype='float32')   
+    return patches_f, datasets
 
-    noisy_dataset_path = source_folder + os.sep + noisy_dataset_name +'.dat'
-    noisy_datasets = unpickle(noisy_dataset_path)
-    noisy_patches = numpy.concatenate((noisy_datasets['r']['data'],noisy_datasets['g']['data'],noisy_datasets['b']['data']),axis=0)
-    noisy_patches_f = numpy.array(noisy_patches, dtype='float32')
+def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_patch_data"):
+    make_sure_path_exists(source_folder)
+    
+    clean_patches_f, clean_datasets = loadDataset(reference_name, source_folder)
+    noisy_patches_f, noisy_datasets = loadDataset(noisy_dataset_name, source_folder)
+
     patch_size = noisy_datasets['patch_size']
     return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets,patch_size
 

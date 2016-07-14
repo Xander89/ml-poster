@@ -367,6 +367,7 @@ def saveTrainedData(path, sda):
  
 def loadTrainedData(path):
     d = unpickle(path)
+    
     sda = d["SdA"]["data"]
     results =(sda)
     return results   
@@ -375,7 +376,7 @@ def loadTrainedData(path):
 def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
              pretrain_lr=0.01, training_epochs=100,
              hidden_layers_fraction = [0.5, 0.5, 0.5],
-             noise_dataset_samples = 5, batch_size = 128
+             noise_dataset_samples = 20, batch_size = 128
              ):
 
     dataset_base = "sponzat_0"
@@ -492,16 +493,17 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
 #    # end-snippet-4
 if __name__ == "__main__":
     pretrain_epochs = [10000]
-    finetune_rates = [0.01, 0.1]
-    pretrain_rates = [0.01, 0.1]
+    finetune_rates = [0.01]
+    pretrain_rates = [0.1]
     finetune_epochs = [10000]    
     hl = [[0.5, 0.5, 0.5]]
-    batch_sizes = [128, 256]
-
-    for b in batch_sizes:
-        for l in hl:
-            for lr2 in finetune_rates:
-                for lr1 in pretrain_rates:
-                    for e1 in pretrain_epochs:
-                        for e2 in finetune_epochs:                       
-                            test_SdA(finetune_lr=lr2, pretraining_epochs=e1, pretrain_lr=lr1, training_epochs=e2, hidden_layers_fraction = l, noise_dataset_samples = 5,  batch_size = b)
+    batch_sizes = [128]
+    noise_data_samples = [20]
+    for n in noise_data_samples:
+        for b in batch_sizes:
+            for l in hl:
+                for lr2 in finetune_rates:
+                    for lr1 in pretrain_rates:
+                        for e1 in pretrain_epochs:
+                            for e2 in finetune_epochs:                       
+                                test_SdA(finetune_lr=lr2, pretraining_epochs=e1, pretrain_lr=lr1, training_epochs=e2, hidden_layers_fraction = l, noise_dataset_samples = n,  batch_size = b)
