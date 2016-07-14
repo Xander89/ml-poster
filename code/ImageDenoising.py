@@ -374,7 +374,7 @@ def saveTrainedData(path,noise_W, noise_b, noise_b_p,hidden, Width, Height ):
     d["Width"] = {"data" : Width}
     d["Height"] = {"data" : Height}
     ff = open(path, "wb")
-    pickle.dump(d, ff)
+    pickle.dump(d, ff, protocol=pickle.HIGHEST_PROTOCOL)
     ff.close()
     
 def loadTrainedData(path):
