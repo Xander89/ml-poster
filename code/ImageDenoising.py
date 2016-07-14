@@ -420,14 +420,32 @@ def loadDataset(name, source_folder = "./image_patch_data"):
     patches_f = numpy.array(patches, dtype='float32')   
     return patches_f, datasets
 
-def loadDatasets(reference_name, noisy_dataset_name,source_folder = "./image_patch_data"):
-    make_sure_path_exists(source_folder)
-    
-    clean_patches_f, clean_datasets = loadDataset(reference_name, source_folder)
-    noisy_patches_f, noisy_datasets = loadDataset(noisy_dataset_name, source_folder)
+def loadDatasets(reference_name_list, noisy_dataset_name_list,source_folder = "./image_patch_data"):
+    assert len(reference_name_list) == len(noisy_dataset_name_list)
 
-    patch_size = noisy_datasets['patch_size']
-    return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets,patch_size
+    make_sure_path_exists(source_folder)
+    clean_datasets = []    
+    noisy_datasets = []
+    noisy_patches_f = numpy.zeros(1)
+    clean_patches_f = numpy.zeros(1)
+    
+    for i in range(len(reference_name_list)):
+        ref_name = reference_name_list[i]
+        noise_name = noisy_dataset_name_list[i]
+        clean_patches_f_i, clean_dataset_i = loadDataset(ref_name, source_folder)
+        noisy_patches_f_i, noisy_dataset_i = loadDataset(noise_name, source_folder)
+        if i == 0:
+            clean_patches_f = clean_patches_f_i
+            noisy_patches_f = noisy_patches_f_i
+        else:
+            clean_patches_f = numpy.concatenate((clean_patches_f, clean_patches_f_i), axis = 0)
+            noisy_patches_f = numpy.concatenate((noisy_patches_f, noisy_patches_f_i), axis = 0)
+            
+        clean_datasets.append(clean_dataset_i)
+        noisy_datasets.append(noisy_dataset_i)
+
+    patch_size = noisy_datasets[0]['patch_size']
+    return clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets, patch_size
 
 if __name__ == '__main__':
    

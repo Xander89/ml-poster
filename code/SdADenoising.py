@@ -380,13 +380,14 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
              noise_dataset_samples = 20, batch_size = 128
              ):
 
-    dataset_base = "sponzat_0"
-    dataset_name = dataset_base + "_10000"
+    dataset_base = ["sponzat_0", "sponzat_1"]
+    dataset_names = [name + "_10000" for name in dataset_base]
     result_folder = "./result_images"
     
     
-    noise_dataset_name = dataset_base +"_"+ str(noise_dataset_samples)
-    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets, patch_size = loadDatasets(dataset_name, noise_dataset_name)
+
+    noise_dataset_names = [name + "_" + str(noise_dataset_samples) for name in dataset_base]
+    clean_patches_f, noisy_patches_f, clean_datasets, noisy_datasets, patch_size = loadDatasets(dataset_names, noise_dataset_names)
     Width = patch_size[0]
     Height= patch_size[1]
     hidden_layers_sizes = [int(f*Width * Height) for f in hidden_layers_fraction]
@@ -398,7 +399,9 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
                       + layers_string + "_tunerate" + str(finetune_lr) 
                       + "_pretrainrate" + str(pretrain_lr)+"_W" +str(Width)
                       +"_batchsize" + str(batch_size))
-    path = "training/trained_variables_" + noise_dataset_name + parameters_name +".dat"
+ 
+    noise_dataset_common_name = "_".join(dataset_base)
+    path = "training/trained_variables_" + noise_dataset_common_name + parameters_name +".dat"
     train_set_x = theano.shared(clean_patches_f)
     train_set_x_noise = theano.shared(noisy_patches_f)
 
@@ -484,19 +487,19 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
     if isTrained:
         sda = loadTrainedData(path)
 
-    d = filterImagesSdA(noisy_datasets, sda)
-
-    
+    for i in range(len(noisy_datasets)):
+        noise_n = noise_dataset_names[i]
+        noisy_dataset = noisy_datasets[i]
+        d = filterImagesSdA(noisy_dataset, sda)
+        saveImage(d, noise_n + parameters_name, result_folder)
+#   
     saveTrainedData(path, sda)
-    saveImage(d, noise_dataset_name  + parameters_name,
-                                     result_folder)
-#    d2, cost = get_cost(noisy_datasets, clean_datasets, sda)
 #    # end-snippet-4
 if __name__ == "__main__":
-    pretrain_epochs = [1000]
+    pretrain_epochs = [10]
     finetune_rates = [0.01]
     pretrain_rates = [0.1]
-    finetune_epochs = [1000]    
+    finetune_epochs = [10]    
     hl = [[0.3, 0.3, 0.3]]
     batch_sizes = [128]
     noise_data_samples = [5]

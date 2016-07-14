@@ -20,6 +20,18 @@ from contrast_normalization import contrast_normalize, contrast_denormalize
 
 rgb_names = ["r", "g", "b"]
 
+import scipy.stats as st
+
+def gkern(kernlen=21, nsig=3):
+    """Returns a 2D Gaussian kernel array."""
+    interval = (2*nsig+1.)/(kernlen)
+    x = np.linspace(-nsig-interval/2., nsig+interval/2., kernlen+1)
+    kern1d = np.diff(st.norm.cdf(x))
+    kernel_raw = np.sqrt(np.outer(kern1d, kern1d))
+    kernel = kernel_raw/kernel_raw.sum()
+    return kernel
+
+
 def unpickle(file):
     fo = open(file, 'rb')
     d = pickle.load(fo)
@@ -56,7 +68,8 @@ def recombine_image(d, output_name = "test.png"):
     ones = np.zeros([image_size[0], image_size[1],3])
     ones.fill(1.)
     patch_weight = np.zeros(patch_size)
-    patch_weight.fill(1.)
+ #   patch_weight.fill(1.)
+    patch_weight = gkern(patch_size[0])
     
     if "normalized" in d.keys() and d["normalized"] is True:
         min_l = d["min_l"]
@@ -75,12 +88,12 @@ def recombine_image(d, output_name = "test.png"):
                 patch = np.reshape(patch, patch_size)
                 initial_pixel = np.array([x,y])*step
                 final_pixel = initial_pixel + patch_size
-                data[initial_pixel[0]:final_pixel[0],:, color_i][:,initial_pixel[1]:final_pixel[1]] += patch
+                data[initial_pixel[0]:final_pixel[0],:, color_i][:,initial_pixel[1]:final_pixel[1]] += np.multiply(patch, patch_weight)
                 data_weights[initial_pixel[0]:final_pixel[0],:, color_i][:,initial_pixel[1]:final_pixel[1]] += patch_weight
-    data_weights = np.maximum(data_weights, ones)
+    #data_weights = np.maximum(data_weights, ones)
     data = data / data_weights
-    
-
+    for color_i in range(3):
+        data[:,:,color_i] = scipy.ndimage.filters.gaussian_filter(data[:,:,color_i], 1.5)
     scipy.misc.toimage(data, cmin=0.0, cmax=1.0, channel_axis=2).save(output_name)
     return data
  
@@ -138,6 +151,7 @@ def extract_random_patches_dict(d, chosen_patches):
 
 
 def run(): 
+
     path = get_script_dir()
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--input', required=False, default=".", dest="input_folder", help='The input folder where to find the images.')
