@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     path = get_script_dir()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i','--input', required=False, default="./image_patch_data/sponzat_0_5.dat", dest="image", help='The input image file.')
+    parser.add_argument('-i','--input', required=False, default="./image_patch_data/sponzat_1_5.dat", dest="image", help='The input image file.')
     parser.add_argument('-o','--out', required=False, default="filtered_images", dest="output_folder", help='The output file.')
     parser.add_argument('-t','--training', required=False, default="training", dest="training_folder", help='Folder containing training data.')
     

@@ -391,18 +391,16 @@ def loadTrainedData(path):
 def filterImages(noise_datasets, autoEncoder):
     d = noise_datasets.copy()
     rgb = ('r', 'g', 'b')
-    x = T.vector('x', dtype='float32')
+    x = T.matrix('x', dtype='float32')
     evaluate = theano.function(
         [x],
         autoEncoder.get_denoised_patch_function(x)
     )
     for c in rgb:
-        imgs = numpy.array(d[c]['data'], dtype='float32')
-        for idx in range(0, imgs.shape[0],1):
-#            print("denoising: " + c + str(idx) )
-            X = imgs[idx]
-            Z = evaluate(X)
-            d[c]['data'][idx] = Z
+        imgs = numpy.array(d[c]['data'], dtype='float32')   
+        X = imgs
+        Z = evaluate(X)
+        d[c]['data'] = Z
             
     return d
 
@@ -444,7 +442,7 @@ if __name__ == '__main__':
     #PARAMETERS TO PLAY WITH
     hidden_fraction = 0.5
     hidden = int(hidden_fraction*Width * Height)
-    training_epochs = 10000
+    training_epochs = 100
     learning_rate =0.01
     
     
