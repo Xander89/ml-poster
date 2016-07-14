@@ -308,20 +308,21 @@ class SdA(object):
 def filterImagesSdA(noise_datasets, sda):
     d = copy.deepcopy(noise_datasets)
     rgb = ("r", "g", "b")
-    x = T.vector("x", dtype="float32")
+    x = T.matrix("x", dtype="float32")
     evaluate = theano.function(
         [x],
         sda.get_denoised_patch_function(x)
+     #   , profile = True
     )
-   
+    
     for c in rgb:
         imgs = numpy.array(d[c]["data"], dtype="float32")
-        for idx in range(0, imgs.shape[0],1):
+        #for idx in range(0, imgs.shape[0],1):
 #            print("denoising: " + c + str(idx) )
-            X = imgs[idx]
-            Z = evaluate(X)
-            d[c]["data"][idx] = Z
-            
+            #X = imgs[idx]
+        Z = evaluate(imgs)
+        d[c]["data"] = Z
+    #evaluate.profile.print_summary() 
     return d
 
 def get_cost(filtered_dataset, clean_dataset, sda):
