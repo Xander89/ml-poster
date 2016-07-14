@@ -185,7 +185,7 @@ def run():
         colors = [np.reshape(r, (width, height)) for r in colors]
         d = extract_patches(colors, np.array([width, height]), pad_size, patch_size, file_base, False)
         ff = open(path + "/" + t[2] + ".dat", "wb")
-        pickle.dump(d, ff)
+        pickle.dump(d, ff, protocol=pickle.HIGHEST_PROTOCOL)
         ff.close()
         
 if __name__ == '__main__':

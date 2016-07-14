@@ -362,7 +362,7 @@ def saveTrainedData(path, sda):
     d = {}
     d["SdA"] = {"data" : sda}
     ff = open(path, "wb")
-    pickle.dump(d, ff)
+    pickle.dump(d, ff, protocol=pickle.HIGHEST_PROTOCOL)
     ff.close()
  
 def loadTrainedData(path):

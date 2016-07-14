@@ -13,6 +13,7 @@ from generate_patches import get_script_dir, make_sure_path_exists
 from SdADenoising import loadTrainedData as loadTrainedDataSdA
 from ImageDenoising import loadTrainedData as loadTrainedDatadA, loadDataset, saveImage
 from SdADenoising import filterImagesSdA
+from SdADenoising import SdA
 
 if __name__ == '__main__':
 
