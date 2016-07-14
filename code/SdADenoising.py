@@ -492,13 +492,13 @@ def test_SdA(finetune_lr=0.01, pretraining_epochs=100,
 #    d2, cost = get_cost(noisy_datasets, clean_datasets, sda)
 #    # end-snippet-4
 if __name__ == "__main__":
-    pretrain_epochs = [10000]
+    pretrain_epochs = [1000]
     finetune_rates = [0.01]
     pretrain_rates = [0.1]
-    finetune_epochs = [10000]    
-    hl = [[0.5, 0.5, 0.5]]
+    finetune_epochs = [1000]    
+    hl = [[0.3, 0.3, 0.3]]
     batch_sizes = [128]
-    noise_data_samples = [20]
+    noise_data_samples = [5]
     for n in noise_data_samples:
         for b in batch_sizes:
             for l in hl:
